@@ -51,6 +51,7 @@
             min-height: 600px;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         /* Utility Classes */
@@ -65,7 +66,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 3rem 2rem;
+            padding: 1rem 2rem 3rem 2rem;
             gap: 1.5rem;
         }
 
@@ -501,10 +502,41 @@
             outline: 3px solid var(--primary);
             outline-offset: 2px;
         }
+
+        /* Logo Styles */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--surface);
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+        }
+
+        @media (max-width: 480px) {
+            .logo-container {
+                padding: 0.75rem;
+            }
+
+            .logo {
+                width: 96px;
+                height: 96px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Logo (Top Left) -->
+        <div class="logo-container">
+            <img src="assets/logo.png" alt="MBL Logo" class="logo">
+        </div>
+        
         <!-- Camera Section (Initially Visible) -->
         <div id="cameraSection" class="camera-section">
             <div class="camera-icon-wrapper">
