@@ -20,6 +20,7 @@
             --primary-dark: #1d4ed8;
             --success: #10b981;
             --error: #ef4444;
+            --warning: #f59e0b;
             --background: #f8fafc;
             --surface: #ffffff;
             --text-primary: #0f172a;
@@ -101,11 +102,12 @@
             text-align: center;
         }
 
-        #cameraInput {
+        #plateCameraInput,
+        #invoiceCameraInput {
             display: none;
         }
 
-        /* Photo Section */
+        /* Photo Sections */
         .photo-section {
             padding: 1.5rem;
             background: var(--surface);
@@ -120,7 +122,7 @@
             background: var(--border);
         }
 
-        #photoPreview {
+        .photo-preview img {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -153,102 +155,91 @@
             height: 16px;
         }
 
-        /* Form Section */
-        .form-section {
-            padding: 2rem 1.5rem;
+        /* Invoice Photos Section */
+        .invoice-photos-section {
+            padding: 1.5rem;
             background: var(--surface);
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            font-size: 1rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            background: var(--background);
-            color: var(--text-primary);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .form-input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        /* Invoice Numbers */
-        .invoice-container {
+        .invoice-photos-list {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 1rem;
         }
 
-        .invoice-input {
+        .invoice-photo-item {
             position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--border);
         }
 
-        .invoice-input:not(:last-child)::after {
-            content: '';
+        .invoice-photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .invoice-photo-number {
             position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            background: var(--success);
+            top: 0.5rem;
+            left: 0.5rem;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .remove-invoice-photo {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--error);
+            color: white;
+            border: none;
             border-radius: 50%;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
         }
 
-        .invoice-input:not(:last-child)::after::before {
-            content: '✓';
-            color: white;
-            font-size: 0.75rem;
+        .remove-invoice-photo:hover {
+            background: #dc2626;
         }
 
-        .add-invoice-button {
+        .add-invoice-photo-button {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
             width: 100%;
-            padding: 0.75rem;
+            padding: 1rem;
             background: transparent;
             border: 2px dashed var(--border);
-            border-radius: 8px;
+            border-radius: 12px;
             color: var(--primary);
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
-        .add-invoice-button:hover {
+        .add-invoice-photo-button:hover {
             border-color: var(--primary);
             background: rgba(37, 99, 235, 0.05);
         }
 
-        .add-invoice-button svg {
-            width: 18px;
-            height: 18px;
+        .add-invoice-photo-button svg {
+            width: 24px;
+            height: 24px;
         }
 
         /* Location Info */
@@ -339,6 +330,234 @@
             0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
             50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
             100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+        }
+
+        /* OCR Processing State */
+        .ocr-processing {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2rem;
+            text-align: center;
+            gap: 2rem;
+        }
+
+        .ocr-processing-icon {
+            width: 80px;
+            height: 80px;
+            animation: spin 2s linear infinite;
+        }
+
+        .ocr-processing-text {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+        }
+
+        /* OCR Results Display */
+        .ocr-results {
+            padding: 2rem 1.5rem;
+            background: var(--surface);
+        }
+
+        .ocr-result-item {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .ocr-result-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .ocr-result-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .ocr-result-confidence {
+            font-size: 0.875rem;
+            color: var(--success);
+            margin-top: 0.25rem;
+        }
+
+        .ocr-result-confidence.low {
+            color: var(--warning);
+        }
+
+        .ocr-result-confidence.error {
+            color: var(--error);
+        }
+
+        .ocr-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .confirm-button {
+            flex: 1;
+            padding: 1rem;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .confirm-button:hover {
+            background: #059669;
+        }
+
+        .edit-button {
+            flex: 1;
+            padding: 1rem;
+            background: var(--warning);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .edit-button:hover {
+            background: #d97706;
+        }
+
+        /* Manual Override Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .modal-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .modal-photo-preview {
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .modal-photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--background);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-cancel-button {
+            flex: 1;
+            padding: 1rem;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-cancel-button:hover {
+            background: var(--background);
+        }
+
+        .modal-submit-button {
+            flex: 1;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .modal-submit-button:hover {
+            background: var(--primary-dark);
         }
 
         /* Success Message */
@@ -483,7 +702,9 @@
                 height: 50px;
             }
 
-            .form-section {
+            .photo-section,
+            .invoice-photos-section,
+            .ocr-results {
                 padding: 1.5rem 1rem;
             }
         }
@@ -561,23 +782,23 @@
             <img src="assets/logo.png" alt="MBL Logo" class="logo">
         </div>
         
-        <!-- Camera Section (Initially Visible) -->
-        <div id="cameraSection" class="camera-section">
-            <div class="camera-icon-wrapper">
+        <!-- Step 1: Capture Vehicle Plate -->
+        <div id="plateCameraSection" class="camera-section">
+            <div class="camera-icon-wrapper" id="plateCameraIcon">
                 <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                 </svg>
             </div>
-            <p class="camera-instruction">Tap to capture vehicle photo</p>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+            <p class="camera-instruction">Tap to capture vehicle plate</p>
+            <input type="file" id="plateCameraInput" accept="image/*" capture="environment">
         </div>
 
-        <!-- Photo Preview Section (Hidden Initially) -->
-        <div id="photoSection" class="photo-section hidden">
+        <!-- Step 2: Plate Preview -->
+        <div id="platePreviewSection" class="photo-section hidden">
             <div class="photo-preview">
-                <img id="photoPreview" src="" alt="Vehicle photo">
-                <button id="retakeButton" class="retake-button" aria-label="Retake photo">
+                <img id="platePreview" src="" alt="Vehicle plate">
+                <button id="retakePlateButton" class="retake-button" aria-label="Retake plate photo">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M23 4v6h-6"/>
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -587,70 +808,89 @@
             </div>
         </div>
 
-        <!-- Form Section (Hidden Initially) -->
-        <div id="formSection" class="form-section hidden">
-            <form id="submissionForm">
-                <!-- Vehicle Number -->
-                <div class="form-group">
-                    <label for="vehicleNumber" class="form-label">Vehicle Number *</label>
-                    <input 
-                        type="text" 
-                        id="vehicleNumber" 
-                        name="vehicleNumber" 
-                        class="form-input"
-                        placeholder="e.g., ABC-1234"
-                        required
-                        autocomplete="off"
-                        inputmode="text"
-                        aria-required="true"
-                    >
-                </div>
-
-                <!-- Invoice Numbers -->
-                <div class="form-group">
-                    <label class="form-label">Invoice Numbers *</label>
-                    <div id="invoiceNumbersContainer" class="invoice-container">
-                        <input 
-                            type="text" 
-                            name="invoiceNumber" 
-                            class="form-input invoice-input"
-                            placeholder="e.g., INV-001"
-                            required
-                            autocomplete="off"
-                            inputmode="text"
-                            aria-required="true"
-                        >
-                    </div>
-                    <button type="button" id="addInvoiceButton" class="add-invoice-button">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Another Invoice
-                    </button>
-                </div>
-
-                <!-- Location Info (Read-only) -->
-                <div class="form-group">
-                    <label class="form-label">Location</label>
-                    <div id="locationInfo" class="location-info">
-                        <span class="location-status">Acquiring location...</span>
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="submitBtn" class="submit-button">
-                    <span class="button-text">Submit Entry</span>
-                    <span class="button-loader hidden">
-                        <svg class="spinner" viewBox="0 0 50 50">
-                            <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
-                        </svg>
-                    </span>
-                </button>
-            </form>
+        <!-- Step 3: Capture Invoice Photos -->
+        <div id="invoiceCameraSection" class="invoice-photos-section hidden">
+            <div id="invoicePhotosList" class="invoice-photos-list">
+                <!-- Invoice photos will be added here -->
+            </div>
+            <button type="button" id="addInvoicePhotoButton" class="add-invoice-photo-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add Invoice Photo
+            </button>
+            <input type="file" id="invoiceCameraInput" accept="image/*" capture="environment">
         </div>
 
-        <!-- Success Message (Hidden Initially) -->
+        <!-- Step 4: OCR Processing -->
+        <div id="ocrProcessingSection" class="ocr-processing hidden">
+            <svg class="ocr-processing-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a10 10 0 0 1 10 10"/>
+            </svg>
+            <p class="ocr-processing-text">Processing photos with AI...</p>
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">This may take a few seconds</p>
+        </div>
+
+        <!-- Step 5: OCR Results -->
+        <div id="ocrResultsSection" class="ocr-results hidden">
+            <h2 style="margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 700;">Review Extracted Data</h2>
+            
+            <div class="ocr-result-item">
+                <div class="ocr-result-label">Vehicle Plate</div>
+                <div id="ocrPlateValue" class="ocr-result-value">-</div>
+                <div id="ocrPlateConfidence" class="ocr-result-confidence">-</div>
+            </div>
+
+            <div class="ocr-result-item">
+                <div class="ocr-result-label">Invoice Numbers</div>
+                <div id="ocrInvoiceValues" class="ocr-result-value">-</div>
+            </div>
+
+            <div class="ocr-actions">
+                <button id="confirmOCRButton" class="confirm-button">Confirm & Submit</button>
+                <button id="editOCRButton" class="edit-button">Edit Manually</button>
+            </div>
+        </div>
+
+        <!-- Step 6: Location Info -->
+        <div id="locationSection" class="photo-section hidden">
+            <div class="location-info">
+                <span class="location-status">Acquiring location...</span>
+            </div>
+        </div>
+
+        <!-- Manual Override Modal -->
+        <div id="manualOverrideModal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h2 class="modal-title">Manual Entry Required</h2>
+                <p class="modal-description">OCR could not confidently extract the data. Please enter the information manually.</p>
+                
+                <div class="modal-photo-preview">
+                    <img id="manualPlatePreview" src="" alt="Vehicle plate">
+                </div>
+
+                <div class="modal-form-group">
+                    <label class="modal-label">Vehicle Plate Number *</label>
+                    <input type="text" id="manualVehiclePlate" class="modal-input" placeholder="e.g., Dhaka Metro-14-5678">
+                </div>
+
+                <div class="modal-form-group">
+                    <label class="modal-label">Invoice Numbers *</label>
+                    <div id="manualInvoiceInputs" class="invoice-photos-list">
+                        <input type="text" class="modal-input" placeholder="e.g., INV-DBBA/0325/3219">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="cancelManualButton" class="modal-cancel-button">Cancel</button>
+                    <button id="submitManualButton" class="modal-submit-button">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Message -->
         <div id="successMessage" class="success-message hidden">
             <div class="success-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -663,7 +903,7 @@
             <button id="newEntryButton" class="new-entry-button">Record Another Exit</button>
         </div>
 
-        <!-- Error Message (Hidden Initially) -->
+        <!-- Error Message -->
         <div id="errorMessage" class="error-message hidden">
             <div class="error-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -681,8 +921,8 @@
     <script>
         // Configuration
         const CONFIG = {
-            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbxhBBsgOlZVleBsO406lSp_PYbFOvLD_s1IME2ADTW5Tg_7j3u5GJ_nb_Q8jyxqYynEUg/exec', // Web App deployment URL
-            MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
+            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbxhBBsgOlZVleBsO406lSp_PYbFOvLD_s1IME2ADTW5Tg_7j3u5GJ_nb_Q8jyxqYynEUg/exec',
+            MAX_PHOTO_SIZE: 1024 * 1024,
             MAX_PHOTO_DIMENSION: 800,
             GEOLOCATION_TIMEOUT: 10000,
             GEOLOCATION_OPTIONS: {
@@ -694,26 +934,40 @@
 
         // State Management
         const state = {
-            photoData: null,
-            photoCaptureTime: null,
+            platePhotoData: null,
+            invoicePhotoData: [],
             location: null,
-            submissionId: null
+            submissionId: null,
+            ocrResults: null,
+            manualMode: false
         };
 
         // DOM Elements
         const elements = {
-            cameraSection: document.getElementById('cameraSection'),
-            cameraInput: document.getElementById('cameraInput'),
-            photoSection: document.getElementById('photoSection'),
-            photoPreview: document.getElementById('photoPreview'),
-            retakeButton: document.getElementById('retakeButton'),
-            formSection: document.getElementById('formSection'),
-            submissionForm: document.getElementById('submissionForm'),
-            vehicleNumber: document.getElementById('vehicleNumber'),
-            invoiceNumbersContainer: document.getElementById('invoiceNumbersContainer'),
-            addInvoiceButton: document.getElementById('addInvoiceButton'),
-            locationInfo: document.getElementById('locationInfo'),
-            submitBtn: document.getElementById('submitBtn'),
+            plateCameraSection: document.getElementById('plateCameraSection'),
+            plateCameraIcon: document.getElementById('plateCameraIcon'),
+            plateCameraInput: document.getElementById('plateCameraInput'),
+            platePreviewSection: document.getElementById('platePreviewSection'),
+            platePreview: document.getElementById('platePreview'),
+            retakePlateButton: document.getElementById('retakePlateButton'),
+            invoiceCameraSection: document.getElementById('invoiceCameraSection'),
+            invoicePhotosList: document.getElementById('invoicePhotosList'),
+            addInvoicePhotoButton: document.getElementById('addInvoicePhotoButton'),
+            invoiceCameraInput: document.getElementById('invoiceCameraInput'),
+            ocrProcessingSection: document.getElementById('ocrProcessingSection'),
+            ocrResultsSection: document.getElementById('ocrResultsSection'),
+            ocrPlateValue: document.getElementById('ocrPlateValue'),
+            ocrPlateConfidence: document.getElementById('ocrPlateConfidence'),
+            ocrInvoiceValues: document.getElementById('ocrInvoiceValues'),
+            confirmOCRButton: document.getElementById('confirmOCRButton'),
+            editOCRButton: document.getElementById('editOCRButton'),
+            locationSection: document.getElementById('locationSection'),
+            manualOverrideModal: document.getElementById('manualOverrideModal'),
+            manualPlatePreview: document.getElementById('manualPlatePreview'),
+            manualVehiclePlate: document.getElementById('manualVehiclePlate'),
+            manualInvoiceInputs: document.getElementById('manualInvoiceInputs'),
+            cancelManualButton: document.getElementById('cancelManualButton'),
+            submitManualButton: document.getElementById('submitManualButton'),
             successMessage: document.getElementById('successMessage'),
             errorMessage: document.getElementById('errorMessage'),
             errorText: document.getElementById('errorText'),
@@ -742,97 +996,117 @@
             element.classList.add('hidden');
         }
 
-        function setLoading(loading) {
-            const buttonText = elements.submitBtn.querySelector('.button-text');
-            const buttonLoader = elements.submitBtn.querySelector('.button-loader');
-            
-            elements.submitBtn.disabled = loading;
-            
-            if (loading) {
-                hideElement(buttonText);
-                showElement(buttonLoader);
-            } else {
-                showElement(buttonText);
-                hideElement(buttonLoader);
-            }
-        }
-
         // Camera Functions
         function initCamera() {
-            elements.cameraIconWrapper = document.querySelector('.camera-icon-wrapper');
-            
-            elements.cameraIconWrapper.addEventListener('click', () => {
-                elements.cameraInput.click();
+            elements.plateCameraIcon.addEventListener('click', () => {
+                elements.plateCameraInput.click();
             });
             
-            elements.cameraInput.addEventListener('change', handlePhotoCapture);
-            elements.retakeButton.addEventListener('click', retakePhoto);
+            elements.plateCameraInput.addEventListener('change', handlePlateCapture);
+            elements.retakePlateButton.addEventListener('click', retakePlate);
+            
+            elements.addInvoicePhotoButton.addEventListener('click', () => {
+                elements.invoiceCameraInput.click();
+            });
+            
+            elements.invoiceCameraInput.addEventListener('change', handleInvoiceCapture);
         }
 
-        async function handlePhotoCapture(event) {
+        async function handlePlateCapture(event) {
             const file = event.target.files[0];
             
             if (!file) return;
             
             try {
-                // Validate file type
                 if (!file.type.startsWith('image/')) {
                     alert('Please select an image file');
                     return;
                 }
                 
-                // Compress photo
                 const compressedData = await compressPhoto(file);
-                
-                // Update state
-                state.photoData = compressedData;
-                state.photoCaptureTime = new Date().toISOString();
+                state.platePhotoData = compressedData;
                 state.submissionId = generateUUID();
                 
-                // Show photo preview
-                elements.photoPreview.src = compressedData;
+                elements.platePreview.src = compressedData;
                 
-                // Transition UI
-                hideElement(elements.cameraSection);
-                showElement(elements.photoSection);
-                showElement(elements.formSection);
-                
-                // Start geolocation
-                startGeolocation();
-                
-                // Focus on vehicle number input
-                setTimeout(() => elements.vehicleNumber.focus(), 300);
+                hideElement(elements.plateCameraSection);
+                showElement(elements.platePreviewSection);
+                showElement(elements.invoiceCameraSection);
                 
             } catch (error) {
-                console.error('Photo capture error:', error);
+                console.error('Plate capture error:', error);
                 alert('Failed to process photo. Please try again.');
             }
         }
 
-        function retakePhoto() {
-            // Reset state
-            state.photoData = null;
-            state.photoCaptureTime = null;
-            state.location = null;
+        function retakePlate() {
+            state.platePhotoData = null;
+            elements.plateCameraInput.value = '';
             
-            // Reset form
-            elements.submissionForm.reset();
+            hideElement(elements.platePreviewSection);
+            hideElement(elements.invoiceCameraSection);
+            showElement(elements.plateCameraSection);
+        }
+
+        async function handleInvoiceCapture(event) {
+            const file = event.target.files[0];
             
-            // Reset invoice inputs to single
-            while (elements.invoiceNumbersContainer.children.length > 1) {
-                elements.invoiceNumbersContainer.removeChild(elements.invoiceNumbersContainer.lastChild);
+            if (!file) return;
+            
+            try {
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file');
+                    return;
+                }
+                
+                const compressedData = await compressPhoto(file);
+                const invoiceNumber = state.invoicePhotoData.length + 1;
+                
+                state.invoicePhotoData.push(compressedData);
+                
+                const invoiceItem = document.createElement('div');
+                invoiceItem.className = 'invoice-photo-item';
+                invoiceItem.innerHTML = `
+                    <img src="${compressedData}" alt="Invoice ${invoiceNumber}">
+                    <span class="invoice-photo-number">Invoice ${invoiceNumber}</span>
+                    <button class="remove-invoice-photo" data-index="${state.invoicePhotoData.length - 1}" aria-label="Remove invoice photo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                `;
+                
+                elements.invoicePhotosList.appendChild(invoiceItem);
+                
+                // Add remove button listener
+                const removeButton = invoiceItem.querySelector('.remove-invoice-photo');
+                removeButton.addEventListener('click', () => removeInvoicePhoto(state.invoicePhotoData.length - 1));
+                
+                elements.invoiceCameraInput.value = '';
+                
+            } catch (error) {
+                console.error('Invoice capture error:', error);
+                alert('Failed to process photo. Please try again.');
+            }
+        }
+
+        function removeInvoicePhoto(index) {
+            state.invoicePhotoData.splice(index, 1);
+            
+            const items = elements.invoicePhotosList.querySelectorAll('.invoice-photo-item');
+            if (items[index]) {
+                items[index].remove();
             }
             
-            // Reset location display
-            elements.locationInfo.innerHTML = '<span class="location-status">Acquiring location...</span>';
-            
-            // Reset camera input
-            elements.cameraInput.value = '';
-            
-            // Transition UI back to camera
-            hideElement(elements.photoSection);
-            hideElement(elements.formSection);
-            showElement(elements.cameraSection);
+            // Reindex remaining items
+            const remainingItems = elements.invoicePhotosList.querySelectorAll('.invoice-photo-item');
+            remainingItems.forEach((item, i) => {
+                const numberSpan = item.querySelector('.invoice-photo-number');
+                numberSpan.textContent = `Invoice ${i + 1}`;
+                const removeButton = item.querySelector('.remove-invoice-photo');
+                removeButton.setAttribute('data-index', i);
+            });
         }
 
         async function compressPhoto(file) {
@@ -847,7 +1121,6 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        // Calculate dimensions
                         if (width > height) {
                             if (width > CONFIG.MAX_PHOTO_DIMENSION) {
                                 height = Math.round((height * CONFIG.MAX_PHOTO_DIMENSION) / width);
@@ -866,10 +1139,8 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Compress to JPEG at 0.8 quality
                         const compressedData = canvas.toDataURL('image/jpeg', 0.8);
                         
-                        // Check size
                         const sizeInBytes = Math.round((compressedData.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
                         
                         if (sizeInBytes > CONFIG.MAX_PHOTO_SIZE) {
@@ -888,17 +1159,160 @@
             });
         }
 
-        // Geolocation Functions
+        // OCR Processing
+        async function processOCR() {
+            showElement(elements.ocrProcessingSection);
+            
+            try {
+                const response = await fetch(CONFIG.WEB_APP_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        platePhoto: state.platePhotoData,
+                        invoicePhotos: state.invoicePhotoData,
+                        location: state.location,
+                        deviceInfo: getDeviceInfo(),
+                        captureTime: new Date().toISOString(),
+                        submissionId: state.submissionId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                hideElement(elements.ocrProcessingSection);
+                
+                if (result.status === 200) {
+                    // Success
+                    state.ocrResults = result.data;
+                    displayOCRResults(result.data);
+                    showElement(elements.locationSection);
+                    startGeolocation();
+                } else if (result.status === 202) {
+                    // Requires manual review
+                    state.manualMode = true;
+                    showManualOverrideModal(result.data);
+                } else {
+                    // Error
+                    showError(result.message);
+                }
+                
+            } catch (error) {
+                console.error('OCR processing error:', error);
+                hideElement(elements.ocrProcessingSection);
+                showError('Failed to process photos. Please try again.');
+            }
+        }
+
+        function displayOCRResults(data) {
+            elements.ocrPlateValue.textContent = data.vehicleNumber || 'Not detected';
+            elements.ocrInvoiceValues.textContent = data.invoiceNumbers ? data.invoiceNumbers.join(', ') : 'None detected';
+            
+            // Display confidence
+            if (data.ocrConfidence) {
+                const confidence = data.ocrConfidence;
+                elements.ocrPlateConfidence.textContent = `Confidence: ${confidence}`;
+                
+                if (confidence.includes('95%') || confidence.includes('100%')) {
+                    elements.ocrPlateConfidence.className = 'ocr-result-confidence';
+                } else if (confidence.includes('90%')) {
+                    elements.ocrPlateConfidence.className = 'ocr-result-confidence low';
+                } else {
+                    elements.ocrPlateConfidence.className = 'ocr-result-confidence error';
+                }
+            }
+            
+            showElement(elements.ocrResultsSection);
+        }
+
+        // Manual Override
+        function showManualOverrideModal(ocrResults) {
+            elements.manualPlatePreview.src = state.platePhotoData;
+            
+            // Pre-fill with OCR results if available
+            if (ocrResults.vehicleNumber) {
+                elements.manualVehiclePlate.value = ocrResults.vehicleNumber;
+            }
+            
+            // Clear and rebuild invoice inputs
+            elements.manualInvoiceInputs.innerHTML = '';
+            const invoiceCount = ocrResults.invoiceNumbers ? ocrResults.invoiceNumbers.length : 1;
+            for (let i = 0; i < Math.max(invoiceCount, 1); i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'modal-input';
+                input.placeholder = 'e.g., INV-DBBA/0325/3219';
+                if (ocrResults.invoiceNumbers && ocrResults.invoiceNumbers[i]) {
+                    input.value = ocrResults.invoiceNumbers[i];
+                }
+                elements.manualInvoiceInputs.appendChild(input);
+            }
+            
+            showElement(elements.manualOverrideModal);
+        }
+
+        function hideManualOverrideModal() {
+            hideElement(elements.manualOverrideModal);
+            state.manualMode = false;
+        }
+
+        async function submitManualEntry() {
+            const vehiclePlate = elements.manualVehiclePlate.value.trim();
+            const invoiceInputs = elements.manualInvoiceInputs.querySelectorAll('input');
+            const invoiceNumbers = Array.from(invoiceInputs)
+                .map(input => input.value.trim())
+                .filter(value => value.length > 0);
+            
+            if (!vehiclePlate) {
+                alert('Please enter a vehicle plate number');
+                return;
+            }
+            
+            if (invoiceNumbers.length === 0) {
+                alert('Please enter at least one invoice number');
+                return;
+            }
+            
+            try {
+                const response = await fetch(CONFIG.WEB_APP_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        platePhoto: state.platePhotoData,
+                        invoicePhotos: state.invoicePhotoData,
+                        manualVehicleNumber: vehiclePlate,
+                        manualInvoiceNumbers: invoiceNumbers,
+                        location: state.location,
+                        deviceInfo: getDeviceInfo(),
+                        captureTime: new Date().toISOString(),
+                        submissionId: state.submissionId,
+                        isManualOverride: true
+                    })
+                });
+                
+                hideManualOverrideModal();
+                showSuccess();
+                
+            } catch (error) {
+                console.error('Manual submission error:', error);
+                alert('Failed to submit. Please try again.');
+            }
+        }
+
+        // Geolocation
         function startGeolocation() {
             if (!navigator.geolocation) {
-                elements.locationInfo.innerHTML = '<span class="location-status">Location not supported</span>';
+                elements.locationSection.innerHTML = '<div class="location-info"><span class="location-status">Location not supported</span></div>';
                 return;
             }
             
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     state.location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-                    elements.locationInfo.innerHTML = `<span class="location-status" style="color: var(--success);">✓ ${state.location}</span>`;
+                    elements.locationSection.innerHTML = `<div class="location-info"><span class="location-status" style="color: var(--success);">✓ ${state.location}</span></div>`;
                 },
                 (error) => {
                     console.warn('Geolocation error:', error);
@@ -916,252 +1330,77 @@
                             break;
                     }
                     
-                    elements.locationInfo.innerHTML = `<span class="location-status" style="color: var(--error);">${message}</span>`;
+                    elements.locationSection.innerHTML = `<div class="location-info"><span class="location-status" style="color: var(--error);">${message}</span></div>`;
                 },
                 CONFIG.GEOLOCATION_OPTIONS
             );
         }
 
-        // Invoice Number Functions
-        function initInvoiceNumbers() {
-            elements.addInvoiceButton.addEventListener('click', addInvoiceField);
-            
-            // Add remove button to existing invoice inputs
-            addRemoveButton(elements.invoiceNumbersContainer.querySelector('.invoice-input'));
-        }
-
-        function addInvoiceField() {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = 'invoiceNumber';
-            input.className = 'form-input invoice-input';
-            input.placeholder = 'e.g., INV-002';
-            input.required = true;
-            input.autocomplete = 'off';
-            input.inputMode = 'text';
-            input.setAttribute('aria-required', 'true');
-            
-            elements.invoiceNumbersContainer.appendChild(input);
-            addRemoveButton(input);
-            
-            // Focus on new input
-            setTimeout(() => input.focus(), 100);
-        }
-
-        function addRemoveButton(input) {
-            if (elements.invoiceNumbersContainer.children.length === 1) {
-                return; // Don't add remove button to first input
-            }
-            
-            const removeButton = document.createElement('button');
-            removeButton.type = 'button';
-            removeButton.className = 'remove-invoice-button';
-            removeButton.innerHTML = '×';
-            removeButton.setAttribute('aria-label', 'Remove invoice number');
-            
-            removeButton.style.cssText = `
-                position: absolute;
-                right: 1rem;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 24px;
-                height: 24px;
-                background: var(--error);
-                color: white;
-                border: none;
-                border-radius: 50%;
-                font-size: 1.25rem;
-                line-height: 1;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s ease;
-            `;
-            
-            removeButton.addEventListener('mouseenter', () => {
-                removeButton.style.background = '#dc2626';
+        // UI Actions
+        function initActions() {
+            elements.confirmOCRButton.addEventListener('click', () => {
+                showSuccess();
             });
             
-            removeButton.addEventListener('mouseleave', () => {
-                removeButton.style.background = 'var(--error)';
+            elements.editOCRButton.addEventListener('click', () => {
+                state.manualMode = true;
+                showManualOverrideModal(state.ocrResults);
             });
             
-            removeButton.addEventListener('click', () => {
-                input.remove();
-                
-                // Update remove buttons on remaining inputs
-                const inputs = elements.invoiceNumbersContainer.querySelectorAll('.invoice-input');
-                inputs.forEach((inp, index) => {
-                    const existingButton = inp.parentElement.querySelector('.remove-invoice-button');
-                    if (existingButton) {
-                        existingButton.remove();
-                    }
-                    
-                    if (index > 0) {
-                        addRemoveButton(inp);
-                    }
-                });
-            });
+            elements.cancelManualButton.addEventListener('click', hideManualOverrideModal);
+            elements.submitManualButton.addEventListener('click', submitManualEntry);
             
-            input.parentElement.style.position = 'relative';
-            input.parentElement.appendChild(removeButton);
-        }
-
-        // Form Submission
-        function initForm() {
-            elements.submissionForm.addEventListener('submit', handleSubmit);
             elements.newEntryButton.addEventListener('click', resetForm);
             elements.retryButton.addEventListener('click', () => {
                 hideElement(elements.errorMessage);
-                showElement(elements.formSection);
+                showElement(elements.plateCameraSection);
             });
-        }
-
-        async function handleSubmit(event) {
-            event.preventDefault();
-            
-            // Validate
-            if (!state.photoData) {
-                alert('Please capture a photo first');
-                return;
-            }
-            
-            const vehicleNumber = elements.vehicleNumber.value.trim();
-            const invoiceInputs = elements.invoiceNumbersContainer.querySelectorAll('input[name="invoiceNumber"]');
-            const invoiceNumbers = Array.from(invoiceInputs)
-                .map(input => input.value.trim())
-                .filter(value => value.length > 0);
-            
-            if (!vehicleNumber) {
-                alert('Please enter a vehicle number');
-                elements.vehicleNumber.focus();
-                return;
-            }
-            
-            if (invoiceNumbers.length === 0) {
-                alert('Please enter at least one invoice number');
-                invoiceInputs[0].focus();
-                return;
-            }
-            
-            // Prepare data
-            const submissionData = {
-                photoBase64: state.photoData,
-                vehicleNumber: vehicleNumber,
-                invoiceNumbers: invoiceNumbers,
-                location: state.location,
-                deviceInfo: getDeviceInfo(),
-                captureTime: state.photoCaptureTime,
-                submissionId: state.submissionId
-            };
-            
-            // Show loading
-            setLoading(true);
-            
-            try {
-                // Submit to Google Apps Script
-                const response = await fetch(CONFIG.WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Required for Google Apps Script
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(submissionData)
-                });
-                
-                // Store submission in localStorage for backup
-                storeSubmission(submissionData);
-                
-                // Show success
-                showSuccess();
-                
-            } catch (error) {
-                console.error('Submission error:', error);
-                showError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        function storeSubmission(data) {
-            const submissions = JSON.parse(localStorage.getItem('vehicleExitSubmissions') || '[]');
-            submissions.push({
-                ...data,
-                timestamp: new Date().toISOString(),
-                synced: true
-            });
-            
-            // Keep only last 50 submissions
-            if (submissions.length > 50) {
-                submissions.splice(0, submissions.length - 50);
-            }
-            
-            localStorage.setItem('vehicleExitSubmissions', JSON.stringify(submissions));
         }
 
         function showSuccess() {
-            hideElement(elements.formSection);
-            hideElement(elements.photoSection);
+            hideElement(elements.ocrResultsSection);
+            hideElement(elements.locationSection);
+            hideElement(elements.platePreviewSection);
+            hideElement(elements.invoiceCameraSection);
             showElement(elements.successMessage);
         }
 
         function showError(message) {
             elements.errorText.textContent = message || 'An error occurred. Please try again.';
-            hideElement(elements.formSection);
+            hideElement(elements.platePreviewSection);
+            hideElement(elements.invoiceCameraSection);
+            hideElement(elements.ocrResultsSection);
             showElement(elements.errorMessage);
         }
 
         function resetForm() {
-            // Reset state
-            state.photoData = null;
-            state.photoCaptureTime = null;
+            state.platePhotoData = null;
+            state.invoicePhotoData = [];
             state.location = null;
             state.submissionId = null;
+            state.ocrResults = null;
+            state.manualMode = false;
             
-            // Reset form
-            elements.submissionForm.reset();
+            elements.plateCameraInput.value = '';
+            elements.invoiceCameraInput.value = '';
+            elements.invoicePhotosList.innerHTML = '';
             
-            // Reset invoice inputs to single
-            while (elements.invoiceNumbersContainer.children.length > 1) {
-                elements.invoiceNumbersContainer.removeChild(elements.invoiceNumbersContainer.lastChild);
-            }
-            
-            // Reset camera input
-            elements.cameraInput.value = '';
-            
-            // Reset location display
-            elements.locationInfo.innerHTML = '<span class="location-status">Acquiring location...</span>';
-            
-            // Hide messages
             hideElement(elements.successMessage);
             hideElement(elements.errorMessage);
-            hideElement(elements.photoSection);
-            hideElement(elements.formSection);
+            hideElement(elements.platePreviewSection);
+            hideElement(elements.invoiceCameraSection);
+            hideElement(elements.ocrResultsSection);
+            hideElement(elements.locationSection);
+            hideManualOverrideModal();
             
-            // Show camera
-            showElement(elements.cameraSection);
+            showElement(elements.plateCameraSection);
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initCamera();
-            initInvoiceNumbers();
-            initForm();
-            
-            // Check for unsynced submissions
-            checkUnsyncedSubmissions();
+            initActions();
         });
-
-        function checkUnsyncedSubmissions() {
-            const submissions = JSON.parse(localStorage.getItem('vehicleExitSubmissions') || '[]');
-            const unsynced = submissions.filter(s => !s.synced);
-            
-            if (unsynced.length > 0) {
-                console.log(`Found ${unsynced.length} unsynced submissions`);
-                // You could implement auto-retry logic here
-            }
-        }
     </script>
 </body>
 </html>

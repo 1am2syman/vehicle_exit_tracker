@@ -1,206 +1,391 @@
-# GitHub Deployment Guide
+# Deployment Guide - Vehicle Exit Tracker with OCR
 
-Follow these steps to deploy your Vehicle Exit Tracker to GitHub Pages.
+Complete guide to deploy the AI-powered vehicle exit tracking system with automatic OCR data extraction.
 
 ## Prerequisites
 
-- A GitHub account (free at [github.com](https://github.com))
-- Git installed on your computer (already done)
-- Your local repository is initialized and committed (already done)
+### Required Accounts & Services
 
-## Step 1: Create GitHub Repository
+1. **Google Account** (free)
+   - Google Sheets
+   - Google Drive
+   - Google Apps Script
 
-1. Go to [github.com](https://github.com) and log in
-2. Click the **+** icon in the top-right corner
-3. Select **New repository**
-4. Fill in the repository details:
-   - **Repository name**: `vehicle-exit-tracker` (or your preferred name)
-   - **Description**: Mobile-first webapp for tracking factory vehicle exits
-   - **Public/Private**: Choose **Public** (required for GitHub Pages free tier)
-5. **DO NOT** check any of the following:
-   - ❌ Add a README file
-   - ❌ Add .gitignore
-   - ❌ Choose a license
-6. Click **Create repository**
+2. **OpenRouter Account** (free tier available)
+   - API key for Gemini 2.5 Flash model
+   - Sign up at: https://openrouter.ai/
 
-## Step 2: Connect Local Repository to GitHub
+### Technical Requirements
 
-After creating the repository, GitHub will show you a page with instructions. Look for the section **"…or push an existing repository from the command line"**.
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Smartphone or tablet with camera
+- Stable internet connection
 
-Open your terminal/command prompt in the project directory (`c:/Users/USER/vehicle_exit_tracker`) and run the following commands:
+## Step-by-Step Deployment
 
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/vehicle-exit-tracker.git
-git branch -M main
-git push -u origin main
-```
+### Step 1: Create Google Sheets
 
-**Important**: Replace `YOUR_USERNAME` with your actual GitHub username.
+1. Go to [Google Sheets](https://sheets.google.com)
+2. Click "Blank spreadsheet"
+3. Name it "Vehicle Exit Tracker"
+4. The following sheets will be created automatically:
+   - `Sheet1` - Main data storage
+   - `ManualReview` - Failed OCR attempts
+   - `ErrorLog` - System errors
 
-For example, if your username is `johndoe`, the command would be:
-```bash
-git remote add origin https://github.com/johndoe/vehicle-exit-tracker.git
-git branch -M main
-git push -u origin main
-```
+### Step 2: Setup Google Apps Script
 
-### If you encounter authentication issues:
-
-GitHub now requires personal access tokens for password authentication:
-
-1. Go to GitHub **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
-2. Click **Generate new token (classic)**
-3. Give it a name like "Vehicle Exit Tracker"
-4. Select scopes: **repo** (required for pushing code)
-5. Click **Generate token**
-6. **Copy the token** (you won't see it again)
-7. When prompted for a password, paste the token instead
-
-## Step 3: Enable GitHub Pages
-
-1. Go to your repository on GitHub
-2. Click **Settings** tab (top of the page)
-3. In the left sidebar, click **Pages**
-4. Under **Build and deployment** → **Source**, select **Deploy from a branch**
-5. Under **Branch**, select **main** and **/ (root)**
-6. Click **Save**
-
-Your site will be deployed at: `https://YOUR_USERNAME.github.io/vehicle-exit-tracker/`
-
-**Note**: It may take 1-2 minutes for the site to be available.
-
-## Step 4: Verify Deployment
-
-1. Wait 1-2 minutes
-2. Go to the URL: `https://YOUR_USERNAME.github.io/vehicle-exit-tracker/`
-3. You should see the Vehicle Exit Tracker interface
-
-## Step 5: Configure Google Apps Script (Required)
-
-Before the app can work, you need to set up the backend:
-
-### 5.1 Create Google Sheet
-
-1. Go to [sheets.google.com](https://sheets.google.com)
-2. Create a new spreadsheet named "Vehicle Exit Tracker"
-3. In the first row, create these headers (A1 through H1):
-   - A1: `Timestamp`
-   - B1: `Photo URL`
-   - C1: `Vehicle Number`
-   - D1: `Invoice Numbers`
-   - E1: `Location`
-   - F1: `Device Info`
-   - G1: `Capture Time`
-   - H1: `Submission ID`
-
-4. Format the sheet:
-   - Select row 1 and make it bold
-   - Go to **View** → **Freeze** → **1 row**
-   - Select columns C and D, go to **Format** → **Text wrapping** → **Wrap**
-
-### 5.2 Create Google Drive Folder
-
-1. Go to [drive.google.com](https://drive.google.com)
-2. Click **New** → **Folder**
-3. Name it "Vehicle Exit Photos"
-4. Open the folder and look at the URL
-5. Copy the folder ID from the URL (the long string after `/folders/`)
-   - Example: `https://drive.google.com/drive/folders/1ABCxyz123...`
-   - Folder ID: `1ABCxyz123...`
-6. Right-click the folder → **Share**
-7. Change to "Anyone with the link"
-8. Click **Done**
-
-### 5.3 Deploy Google Apps Script
-
-1. In your Google Sheet, go to **Extensions** → **Apps Script**
+1. In Google Sheets, go to **Extensions** → **Apps Script**
 2. Delete any existing code
-3. Copy the contents of [`Code.gs`](Code.gs) from your local project
-4. Paste it into the Apps Script editor
-5. **IMPORTANT**: Replace `YOUR_DRIVE_FOLDER_ID` with your actual folder ID from step 5.2
-6. Click **Deploy** → **New deployment**
-7. Click the gear icon (⚙️) → **Web app**
-8. Configure:
-   - **Description**: "Vehicle Exit Tracker v1"
-   - **Execute as**: "Me"
-   - **Who has access**: "Anyone"
-9. Click **Deploy**
-10. Authorize the script when prompted (grant permissions for Drive and Sheets)
-11. **Copy the Web App URL** (starts with `https://script.google.com/macros/s/`)
+3. Copy the entire contents of [`Code.gs`](Code.gs)
+4. Paste into the Apps Script editor
+5. Save the project (Ctrl+S or Cmd+S)
 
-### 5.4 Update Frontend Configuration
+### Step 3: Configure API Key
 
-1. Open your local [`index.html`](index.html) file
-2. Find the CONFIG object in the JavaScript section (around line 425)
-3. Replace `YOUR_WEB_APP_URL_HERE` with your actual Web App URL from step 5.3
+1. In the Apps Script editor, find the function `setAPIKey()`
+2. Click **Run** button
+3. Enter your OpenRouter API key when prompted
+4. The key is securely stored in script properties
+5. Verify success message appears
+
+**Important**: Never hardcode your API key in the source code. Always use the `setAPIKey()` function.
+
+### Step 4: Initialize Sheets
+
+1. In Apps Script editor, find the function `setup()`
+2. Click **Run** button
+3. Grant permissions when prompted:
+   - View and manage spreadsheets
+   - Create and edit files in Google Drive
+4. Wait for "Setup complete" message
+5. This creates the ManualReview and ErrorLog sheets
+
+### Step 5: Deploy as Web App
+
+1. Click **Deploy** → **New deployment**
+2. Select deployment type: **Web app**
+3. Configure deployment settings:
+   - **Description**: Vehicle Exit Tracker with OCR
+   - **Execute as**: Me
+   - **Who has access**: Anyone
+4. Click **Deploy**
+5. Copy the **Web App URL** (starts with `https://script.google.com/...`)
+6. Save this URL - you'll need it for the client
+
+### Step 6: Update Client Configuration
+
+1. Open [`index.html`](index.html)
+2. Find the `CONFIG` object (around line 683)
+3. Replace the `WEB_APP_URL` value with your deployment URL:
+
+```javascript
+const CONFIG = {
+    WEB_APP_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+    // ... other config
+};
+```
+
 4. Save the file
 
-### 5.5 Push Updated Configuration to GitHub
+### Step 7: Test the Deployment
 
-```bash
-git add index.html
-git commit -m "Configure Google Apps Script URL"
-git push
+1. Open [`index.html`](index.html) in a web browser
+2. Test vehicle plate capture:
+   - Click camera icon
+   - Take photo
+   - Verify preview appears
+3. Test invoice photo capture:
+   - Click "Add Invoice Photo"
+   - Take photo
+   - Verify it appears in list
+4. Test OCR processing:
+   - Click "Submit Entry"
+   - Wait for OCR processing
+   - Review extracted data
+5. Test manual override:
+   - Click "Edit Manually"
+   - Enter data manually
+   - Submit
+
+## Deployment Checklist
+
+Use this checklist to ensure successful deployment:
+
+- [ ] Google Sheets created
+- [ ] Apps Script code copied and saved
+- [ ] OpenRouter API key configured via `setAPIKey()`
+- [ ] `setup()` function run successfully
+- [ ] Web app deployed with "Anyone" access
+- [ ] Web App URL copied
+- [ ] Client `WEB_APP_URL` updated
+- [ ] Vehicle plate capture tested
+- [ ] Invoice photo capture tested
+- [ ] OCR processing tested
+- [ ] Manual override tested
+- [ ] Data appears in Google Sheets
+
+## Folder Structure Setup
+
+### Google Drive Folder
+
+The system requires a Google Drive folder to store photos:
+
+1. Create a folder in Google Drive named "Vehicle Exit Photos"
+2. Right-click the folder → **Share**
+3. Set permissions to **Anyone with the link can view**
+4. Copy the **Folder ID** from the URL:
+   - URL format: `https://drive.google.com/drive/folders/FOLDER_ID`
+   - Copy the alphanumeric ID after `/folders/`
+5. In [`Code.gs`](Code.gs), update the `FOLDER_ID` constant:
+
+```javascript
+const CONFIG = {
+  FOLDER_ID: 'YOUR_FOLDER_ID_HERE',
+  SHEET_NAME: 'Sheet1',
+  // ...
+};
 ```
 
-The site will automatically redeploy on GitHub Pages (takes 1-2 minutes).
+6. Redeploy the web app after changing the folder ID
 
-## Step 6: Test the Application
+## Testing the OCR System
 
-1. Wait 1-2 minutes for GitHub Pages to redeploy
-2. Open your GitHub Pages URL on a mobile device
-3. Tap the camera icon to capture a photo
-4. Fill in vehicle number and invoice numbers
-5. Tap "Submit Entry"
-6. Check your Google Sheet for the new entry
+### Test Scenarios
 
-## Troubleshooting
+#### 1. Successful OCR Extraction
 
-### Git push fails with "remote: Permission denied"
+**Test**: Capture clear photos of vehicle plate and invoice
 
-- You need to use a personal access token instead of your password
-- Follow the authentication steps in Step 2
+**Expected Result**:
+- OCR processes successfully
+- Confidence score ≥ 90%
+- Data appears in Sheet1
+- Success message displayed
 
-### GitHub Pages shows 404 error
+**Verify**:
+- Vehicle plate format is correct (e.g., Dhaka Metro-14-5678)
+- Invoice format is correct (e.g., INV-DBBA/0325/3219)
+- Confidence score is shown in green
 
-- Wait 1-2 minutes after enabling Pages
-- Check that you selected the correct branch (main)
-- Ensure your repository is public (required for free GitHub Pages)
+#### 2. Low Confidence OCR
 
-### Camera doesn't open on mobile
+**Test**: Capture blurry or poorly lit photos
 
-- Ensure you're using HTTPS (GitHub Pages provides this automatically)
-- Check browser permissions for camera access
+**Expected Result**:
+- OCR processes but confidence < 90%
+- Manual override modal appears
+- Data saved to ManualReview sheet
 
-### Form submission fails
+**Verify**:
+- Manual modal shows captured photo
+- OCR results are pre-filled
+- Can edit and submit manually
 
-- Verify the Web App URL is correct in index.html
-- Check that Google Apps Script is deployed with "Anyone" access
-- Check browser console for error messages
+#### 3. Multiple Invoices
 
-### Photos not appearing in Google Drive
+**Test**: Capture 2-3 invoice photos
 
-- Verify FOLDER_ID in Code.gs is correct
-- Check that the folder is shared with "Anyone with the link"
-- Check Google Apps Script execution logs
+**Expected Result**:
+- All invoices processed
+- Multiple invoice numbers extracted
+- All numbers appear in Sheet1
 
-## Next Steps
+**Verify**:
+- Each invoice photo is stored
+- All invoice numbers are comma-separated
+- Total cost calculation is correct
 
-Your application is now live! Share the GitHub Pages URL with your team members.
+#### 4. Geolocation
 
-**Important**: Keep your Google Apps Script Web App URL and Google Drive folder ID secure. They are your backend credentials.
+**Test**: Allow or deny location permission
 
-## Updating the Application
+**Expected Result**:
+- If allowed: Coordinates appear in sheet
+- If denied: "Location unavailable" message
 
-To make changes:
+**Verify**:
+- Location format is correct (lat, long)
+- Error message is user-friendly
 
-1. Edit files locally
-2. Commit changes: `git add . && git commit -m "Your message"`
-3. Push to GitHub: `git push`
-4. GitHub Pages will automatically redeploy (1-2 minutes)
+## Troubleshooting Deployment Issues
 
-## Additional Resources
+### Issue: "Script function not found"
 
-- [GitHub Pages Documentation](https://docs.github.com/en/pages)
-- [Google Apps Script Documentation](https://developers.google.com/apps-script)
-- [Google Sheets API](https://developers.google.com/sheets/api)
+**Cause**: Function names don't match or script not saved
+
+**Solution**:
+1. Ensure all functions in [`Code.gs`](Code.gs) are saved
+2. Check for syntax errors (red underline in editor)
+3. Redeploy web app
+
+### Issue: "OpenRouter API key not configured"
+
+**Cause**: `setAPIKey()` function not run
+
+**Solution**:
+1. Run `setAPIKey()` in Apps Script editor
+2. Enter valid OpenRouter API key
+3. Verify success message
+4. Redeploy web app
+
+### Issue: "Missing required fields" error
+
+**Cause**: Client sending wrong data format
+
+**Solution**:
+1. Check browser console for JavaScript errors
+2. Verify `WEB_APP_URL` is correct
+3. Ensure photos are captured before submission
+4. Check network tab for failed requests
+
+### Issue: OCR not working
+
+**Cause**: API key invalid or quota exceeded
+
+**Solution**:
+1. Verify API key in OpenRouter dashboard
+2. Check API quota and billing
+3. Test API key with curl:
+   ```bash
+   curl -X POST https://openrouter.ai/api/v1/chat/completions \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"model":"google/gemini-2.5-flash","messages":[{"role":"user","content":"test"}]}'
+   ```
+4. Update API key if invalid
+
+### Issue: Manual override not appearing
+
+**Cause**: ManualReview sheet doesn't exist
+
+**Solution**:
+1. Run `setup()` function in Apps Script editor
+2. Verify ManualReview sheet was created
+3. Check sheet name matches exactly "ManualReview"
+4. Redeploy web app
+
+## Production Deployment
+
+### Security Best Practices
+
+1. **API Key Security**
+   - Never commit API key to version control
+   - Use script properties, not environment variables
+   - Rotate API keys regularly
+   - Monitor API usage in OpenRouter dashboard
+
+2. **Access Control**
+   - Keep "Anyone" access only for internal use
+   - Consider adding authentication for production
+   - Monitor usage logs in ErrorLog sheet
+
+3. **Data Privacy**
+   - Photos contain sensitive information (vehicle plates)
+   - Implement data retention policy
+   - Regular cleanup of old photos
+   - Comply with local data protection laws
+
+### Performance Monitoring
+
+1. **Key Metrics to Track**:
+   - OCR success rate (should be > 90%)
+   - Average processing time (should be < 10s)
+   - Manual override rate (should be < 10%)
+   - API cost per month
+   - Error rate
+
+2. **Monitoring Tools**:
+   - Google Sheets → View → Statistics
+   - OpenRouter dashboard → API usage
+   - Apps Script → Executions → Runtime stats
+
+3. **Alert Thresholds**:
+   - OCR success rate < 80% → Review photo quality instructions
+   - API errors > 5% → Check API key and quota
+   - Manual overrides > 20% → Improve OCR prompts or photo quality
+
+### Scaling Considerations
+
+1. **High Volume** (> 100 submissions/day):
+   - Implement request queuing
+   - Add rate limiting to prevent API abuse
+   - Consider batch processing
+   - Monitor API costs closely
+
+2. **Multiple Users**:
+   - Add user authentication
+   - Implement per-user quotas
+   - Add audit logging
+   - Separate data by user/team
+
+## Rollback Procedure
+
+If you need to revert to the previous manual-entry version:
+
+1. Keep backup of [`Code.gs`](Code.gs) before changes
+2. Keep backup of [`index.html`](index.html) before changes
+3. Use version control (Git) if available
+4. Document rollback steps
+
+## Maintenance
+
+### Regular Tasks
+
+**Weekly**:
+- Check ErrorLog sheet for new errors
+- Review ManualReview sheet for pending items
+- Monitor API usage and costs
+- Test OCR accuracy with sample photos
+
+**Monthly**:
+- Clean up old photos from Drive (older than 90 days)
+- Review and rotate API keys
+- Update documentation with lessons learned
+- Performance review and optimization
+
+### Updates and Improvements
+
+When updating the system:
+
+1. Test changes in development environment first
+2. Back up production data before deployment
+3. Use gradual rollout for critical changes
+4. Monitor for issues after deployment
+5. Have rollback plan ready
+
+## Support Resources
+
+- **OpenRouter Documentation**: https://openrouter.ai/docs
+- **Google Apps Script**: https://developers.google.com/apps-script
+- **Gemini API**: https://ai.google.dev/gemini-api/docs
+- **Project Plan**: [`plans/ocr-implementation-plan.md`](plans/ocr-implementation-plan.md)
+
+## Success Criteria
+
+Deployment is successful when:
+
+✅ Web app is accessible via URL
+✅ Vehicle plate capture works
+✅ Invoice photo capture works
+✅ OCR processes and extracts data
+✅ Confidence scoring displays correctly
+✅ Manual override works when needed
+✅ Data saves to Google Sheets
+✅ Photos save to Google Drive
+✅ Location tracking works
+✅ Mobile experience is smooth
+✅ No console errors
+✅ API costs are within budget
+
+## Next Steps After Deployment
+
+1. **User Training**: Train users on photo capture best practices
+2. **Monitor**: Watch for OCR issues and manual override rate
+3. **Optimize**: Adjust OCR prompts based on real-world performance
+4. **Scale**: Plan for increased usage if needed
+5. **Enhance**: Add features based on user feedback
+
+---
+
+**Deployment typically takes 10-15 minutes** from start to finish.
