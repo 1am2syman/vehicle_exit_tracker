@@ -1,6 +1,6 @@
 // Configuration
 const CONFIG = {
-  FOLDER_ID: 'YOUR_DRIVE_FOLDER_ID', // Replace with actual folder ID
+  FOLDER_ID: '1yNhbfNskQf0x74YOrpxsR24TBXHRrr3q', // Google Drive folder ID
   SHEET_NAME: 'Sheet1'
 };
 
