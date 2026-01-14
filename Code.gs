@@ -34,7 +34,8 @@ function setupColumns() {
     'AI Processing Time',
     'Validation Status',
     'Error Message',
-    'Manual Override'
+    'Manual Override',
+    'OCR Source'  // NEW: Tracks if OCR was client/backend-ai/ai-fallback
   ];
   
   // Set headers in row 1
@@ -65,6 +66,7 @@ function setupColumns() {
   sheet.setColumnWidth(13, 100); // Validation Status
   sheet.setColumnWidth(14, 100); // Error Message
   sheet.setColumnWidth(15, 100); // Manual Override
+  sheet.setColumnWidth(16, 100); // OCR Source
   
   // Enable text wrapping for appropriate columns
   const wrapColumns = [2, 3, 4, 5, 9, 14];
@@ -272,7 +274,9 @@ function doPost(e) {
         location: e.parameter.location,
         deviceInfo: e.parameter.deviceInfo,
         captureTime: e.parameter.captureTime,
-        submissionId: e.parameter.submissionId
+        submissionId: e.parameter.submissionId,
+        // NEW: Parse client-side OCR data if provided
+        clientOCR: e.parameter.clientOCR ? JSON.parse(e.parameter.clientOCR) : null
       };
     } else {
       // Parse JSON data (standard requests)
@@ -286,6 +290,7 @@ function doPost(e) {
     Logger.log('  submissionId: ' + data.submissionId);
     Logger.log('  location: ' + data.location);
     Logger.log('  deviceInfo: ' + data.deviceInfo);
+    Logger.log('  clientOCR: ' + (data.clientOCR ? 'PRESENT' : 'NOT PROVIDED'));
     
     // Validate required fields
     if (!data.platePhotoBase64 || !data.invoicePhotosBase64 || data.invoicePhotosBase64.length === 0) {
@@ -293,15 +298,50 @@ function doPost(e) {
       return createResponse(400, 'Missing required photos');
     }
     
-    Logger.log('Validation passed, starting AI processing...');
-
-    // AI Processing
-    Logger.log('Calling processPhotosWithAI...');
-    const aiResult = processPhotosWithAI(data.platePhotoBase64, data.invoicePhotosBase64);
-    Logger.log('AI Processing result:');
+    // ========================================================================
+    // HYBRID OCR LOGIC: Use client OCR if confidence is high, else use AI
+    // ========================================================================
+    
+    let aiResult;
+    let ocrSource = 'ai'; // Track where OCR came from
+    
+    // Check if client OCR data exists and has high confidence
+    if (data.clientOCR && 
+        data.clientOCR.vehicleConfidence >= CONFIG.MIN_CONFIDENCE_SCORE &&
+        data.clientOCR.invoiceConfidence >= CONFIG.MIN_CONFIDENCE_SCORE) {
+      
+      Logger.log('Using CLIENT OCR result (high confidence)');
+      Logger.log('  Vehicle confidence: ' + data.clientOCR.vehicleConfidence);
+      Logger.log('  Invoice confidence: ' + data.clientOCR.invoiceConfidence);
+      Logger.log('  OCR Engine: ' + data.clientOCR.ocrEngine);
+      
+      aiResult = {
+        vehicleNumber: data.clientOCR.vehicleNumber,
+        vehicleNumberConfidence: data.clientOCR.vehicleConfidence,
+        invoiceNumbers: data.clientOCR.invoiceNumbers || [],
+        invoiceNumbersConfidence: data.clientOCR.invoiceConfidence
+      };
+      
+      ocrSource = data.clientOCR.usedAIFallback ? 'ai-fallback' : 'client';
+      
+    } else {
+      // Client OCR not provided or low confidence - use backend AI
+      Logger.log('Using BACKEND AI processing (client OCR not available or low confidence)');
+      
+      if (data.clientOCR) {
+        Logger.log('  Client vehicle confidence: ' + data.clientOCR.vehicleConfidence);
+        Logger.log('  Client invoice confidence: ' + data.clientOCR.invoiceConfidence);
+      }
+      
+      Logger.log('Calling processPhotosWithAI...');
+      aiResult = processPhotosWithAI(data.platePhotoBase64, data.invoicePhotosBase64);
+      ocrSource = 'backend-ai';
+    }
+    
+    Logger.log('Final OCR result (source: ' + ocrSource + '):');
     Logger.log('  vehicleNumber: ' + aiResult.vehicleNumber);
     Logger.log('  vehicleNumberConfidence: ' + aiResult.vehicleNumberConfidence);
-    Logger.log('  invoiceNumbers: ' + aiResult.invoiceNumbers.join(', '));
+    Logger.log('  invoiceNumbers: ' + (aiResult.invoiceNumbers ? aiResult.invoiceNumbers.join(', ') : 'none'));
     Logger.log('  invoiceNumbersConfidence: ' + aiResult.invoiceNumbersConfidence);
     
     // Validation
@@ -312,7 +352,7 @@ function doPost(e) {
       Logger.log('Validation error: ' + validationResult.error);
     }
     
-    // IMMEDIATE STORAGE: Store AI result in script properties for retrieval
+    // IMMEDIATE STORAGE: Store result in script properties for retrieval
     // We do this BEFORE uploads to make the UI responsive faster
     const resultKey = 'aiResult_' + data.submissionId;
     const resultData = {
@@ -322,10 +362,11 @@ function doPost(e) {
         vehicle: aiResult.vehicleNumberConfidence,
         invoices: aiResult.invoiceNumbersConfidence
       },
-      validationStatus: validationResult.status
+      validationStatus: validationResult.status,
+      ocrSource: ocrSource
     };
     PropertiesService.getScriptProperties().setProperty(resultKey, JSON.stringify(resultData));
-    Logger.log('AI result stored with key: ' + resultKey);
+    Logger.log('Result stored with key: ' + resultKey);
     
     // Upload photos to Drive
     Logger.log('Starting Drive uploads...');
@@ -350,7 +391,7 @@ function doPost(e) {
       numberPlatePhotoUrl: platePhotoUrl,
       invoicePhotosUrls: invoicePhotoUrls.join(', '),
       vehicleNumber: aiResult.vehicleNumber || 'N/A',
-      invoiceNumbers: aiResult.invoiceNumbers.join(', ') || 'N/A',
+      invoiceNumbers: (aiResult.invoiceNumbers ? aiResult.invoiceNumbers.join(', ') : '') || 'N/A',
       vehicleNumberConfidence: aiResult.vehicleNumberConfidence || 0,
       invoiceNumbersConfidence: aiResult.invoiceNumbersConfidence || 0,
       location: data.location || 'N/A',
@@ -360,7 +401,8 @@ function doPost(e) {
       aiProcessingTime: processingTime,
       validationStatus: validationResult.status,
       errorMessage: validationResult.error || '',
-      manualOverride: false
+      manualOverride: false,
+      ocrSource: ocrSource // NEW: Track OCR source for analytics
     };
     Logger.log('Sheet data prepared, calling appendToSheet...');
     appendToSheet(sheetData);
@@ -606,7 +648,8 @@ function appendToSheet(data) {
     data.aiProcessingTime,
     data.validationStatus,
     data.errorMessage,
-    data.manualOverride
+    data.manualOverride,
+    data.ocrSource || 'unknown' // NEW: Track OCR source (client/backend-ai/ai-fallback)
   ];
   
   sheet.appendRow(rowData);
