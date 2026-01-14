@@ -1313,110 +1313,30 @@
         }
 
         // ============================================================================
-        // OCR INITIALIZATION
+        // NOTE: Local Tesseract.js OCR has been replaced with GAS Fast Path
+        // All OCR (plate + invoice) now goes through OpenRouter via GAS for
+        // consistent performance and accuracy.
+        // ============================================================================
+
+        // FAST PATH AI PROCESSING (Plate + Invoice)
         // ============================================================================
 
         /**
-         * Initialize the on-device OCR engine
-         * Shows progress bar during first-time download (~17MB)
+         * Process image with GAS Fast Path (OpenRouter)
+         * @param {string} imageData - Base64 image
+         * @param {string} type - 'plate' or 'invoice'
+         * @returns {Object} - OCR result
          */
-        async function initializeOCR() {
-            if (state.ocrInitialized || state.ocrInitializing) {
-                return state.ocrInitialized;
-            }
-
-            state.ocrInitializing = true;
-            console.log('[App] Starting OCR initialization...');
-
-            try {
-                // Show initialization UI
-                showElement(elements.ocrInitStatus);
-
-                // Initialize with progress callback
-                await ocrEngine.initialize((progress) => {
-                    const percent = Math.round(progress.progress * 100);
-                    elements.ocrInitProgress.textContent = `${progress.status} (${percent}%)`;
-                    elements.ocrProgressBar.style.width = `${percent}%`;
-                });
-
-                hideElement(elements.ocrInitStatus);
-                state.ocrInitialized = true;
-                state.ocrInitializing = false;
-                console.log('[App] OCR engine ready');
-                return true;
-            } catch (error) {
-                console.error('[App] OCR initialization failed:', error);
-                hideElement(elements.ocrInitStatus);
-                state.ocrInitializing = false;
-                // Don't throw - we'll fallback to AI-only mode
-                return false;
-            }
-        }
-
-        // ============================================================================
-        // ON-DEVICE OCR PROCESSING (Invoices Only)
-        // ============================================================================
-
-        /**
-         * Process invoices with on-device OCR (Tesseract.js)
-         * Returns: { invoiceNumbers, invoiceConfidence }
-         */
-        async function processWithLocalOCR() {
-            console.log('[OCR] Starting on-device Invoice OCR...');
-            showElement(elements.localOcrStatus);
-
-            try {
-                // Run OCR on invoices only
-                const invoiceResults = [];
-                for (const photo of state.invoicePhotos) {
-                    const res = await ocrEngine.recognizeInvoice(photo);
-                    invoiceResults.push(res);
-                }
-
-                // Aggregate results
-                const allNumbers = new Set();
-                let totalConf = 0;
-                invoiceResults.forEach(r => {
-                    if (r.invoiceNumbers) r.invoiceNumbers.forEach(n => allNumbers.add(n));
-                    totalConf += r.confidence;
-                });
-
-                const avgConf = invoiceResults.length > 0 ? totalConf / invoiceResults.length : 0;
-
-                console.log('[OCR] Invoice result:', Array.from(allNumbers));
-                hideElement(elements.localOcrStatus);
-
-                return {
-                    invoiceNumbers: Array.from(allNumbers),
-                    invoiceConfidence: avgConf
-                };
-            } catch (error) {
-                console.error('[OCR] Invoice OCR failed:', error);
-                hideElement(elements.localOcrStatus);
-                return { invoiceNumbers: [], invoiceConfidence: 0 };
-            }
-        }
-
-        // ============================================================================
-        // FAST PATH AI PROCESSING (Plate Only)
-        // ============================================================================
-
-        /**
-         * Process Plate with GAS Fast Path (OpenRouter)
-         * Returns: { vehicleNumber, vehicleConfidence }
-         */
-        async function fetchFastOCR() {
-            console.log('[FastOCR] Starting Plate OCR...');
-            showElement(elements.aiProcessingStatus);
+        async function fetchFastOCR(imageData, type) {
+            console.log(`[FastOCR] Starting ${type} OCR...`);
 
             try {
                 const payload = {
                     action: 'fastOCR',
-                    image: state.platePhoto,
-                    type: 'plate'
+                    image: imageData,
+                    type: type
                 };
 
-                // Use POST with JSON body
                 const response = await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload)
@@ -1426,30 +1346,28 @@
 
                 if (json.status !== 200) throw new Error(json.message);
 
-                console.log('[FastOCR] Result:', json.data);
-                hideElement(elements.aiProcessingStatus);
-
-                return {
-                    vehicleNumber: json.data.vehicleNumber,
-                    vehicleConfidence: json.data.confidence
-                };
+                console.log(`[FastOCR] ${type} Result:`, json.data);
+                return json.data;
 
             } catch (error) {
-                console.error('[FastOCR] Failed:', error);
-                hideElement(elements.aiProcessingStatus);
-                return { vehicleNumber: '', vehicleConfidence: 0 };
+                console.error(`[FastOCR] ${type} Failed:`, error);
+                // Return empty result on failure
+                if (type === 'invoice') {
+                    return { invoiceNumbers: [], confidence: 0 };
+                }
+                return { vehicleNumber: '', confidence: 0 };
             }
         }
 
         // ============================================================================
-        // HYBRID PARALLEL FLOW
+        // GAS FAST PATH PARALLEL FLOW (No Local OCR)
         // ============================================================================
 
         /**
-         * Main processing function - Parallel Execution
+         * Main processing function - All OCR via GAS Fast Path
          */
         async function processAndSubmit() {
-            console.log('=== processAndSubmit STARTED (Parallel) ===');
+            console.log('=== processAndSubmit STARTED (GAS Fast Path) ===');
 
             if (!state.platePhoto || state.invoicePhotos.length === 0) {
                 alert('Please capture all required photos');
@@ -1461,24 +1379,43 @@
 
             // Show processing UI
             showElement(elements.aiProcessingStatus);
-            showElement(elements.localOcrStatus);
             setLoading(true);
 
             try {
-                // TRACK 1 & 2: Parallel Execution
-                const [plateResult, invoiceResult] = await Promise.all([
-                    fetchFastOCR(),           // Track 1: GAS Fast Path (Plate)
-                    processWithLocalOCR()     // Track 2: Local Tesseract (Invoice)
-                ]);
+                // Build parallel OCR requests: 1 plate + N invoices
+                const ocrPromises = [
+                    fetchFastOCR(state.platePhoto, 'plate'),
+                    ...state.invoicePhotos.map(img => fetchFastOCR(img, 'invoice'))
+                ];
+
+                // Execute ALL in parallel
+                const results = await Promise.all(ocrPromises);
+
+                // First result is plate, rest are invoices
+                const plateResult = results[0];
+                const invoiceResults = results.slice(1);
+
+                // Merge invoice numbers from all invoice OCR results
+                const allInvoiceNumbers = new Set();
+                let totalInvoiceConf = 0;
+                invoiceResults.forEach(r => {
+                    (r.invoiceNumbers || []).forEach(n => allInvoiceNumbers.add(n));
+                    totalInvoiceConf += (r.confidence || 0);
+                });
+                const avgInvoiceConf = invoiceResults.length > 0
+                    ? totalInvoiceConf / invoiceResults.length
+                    : 0;
 
                 // Combine results
                 const finalResult = {
-                    vehicleNumber: plateResult.vehicleNumber,
-                    vehicleConfidence: plateResult.vehicleConfidence,
-                    invoiceNumbers: invoiceResult.invoiceNumbers,
-                    invoiceConfidence: invoiceResult.invoiceConfidence,
+                    vehicleNumber: plateResult.vehicleNumber || '',
+                    vehicleConfidence: plateResult.confidence || 0,
+                    invoiceNumbers: Array.from(allInvoiceNumbers),
+                    invoiceConfidence: avgInvoiceConf,
                     validationStatus: 'Success'
                 };
+
+                console.log('[FastOCR] Final combined result:', finalResult);
 
                 state.aiResult = {
                     vehicleNumber: finalResult.vehicleNumber,
@@ -1490,10 +1427,11 @@
                 };
 
                 // DISPLAY IMMEDIATELY
-                displayOCRResult(finalResult, 'hybrid');
+                hideElement(elements.aiProcessingStatus);
+                displayOCRResult(finalResult, 'gas-fast-path');
                 setLoading(false);
 
-                // TRACK 3: Background Upload (Fire and forget, but we handle success/fail silently)
+                // TRACK 3: Background Upload
                 uploadInBackground(finalResult);
 
                 // Show Success Message
@@ -1501,6 +1439,7 @@
 
             } catch (error) {
                 console.error('Processing failed:', error);
+                hideElement(elements.aiProcessingStatus);
                 setLoading(false);
                 showError('Failed to process. Please retry.');
             }
@@ -1688,8 +1627,7 @@
             // Register Service Worker for PWA caching
             registerServiceWorker();
 
-            // Preload OCR engine in background (silent initialization)
-            preloadOCREngine();
+            // Note: Local OCR preload removed - all OCR now via GAS Fast Path
         });
 
         /**
@@ -1711,36 +1649,6 @@
                     console.warn('[SW] Service Worker registration failed:', error);
                     // Not critical - app works without SW
                 }
-            }
-        }
-
-        /**
-         * Preload OCR engine in background after page load
-         * This downloads Tesseract WASM + language files silently
-         */
-        async function preloadOCREngine() {
-            // Wait for page to fully load before starting heavy download
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Check if Tesseract.js is available
-            if (typeof Tesseract === 'undefined') {
-                console.warn('[OCR] Tesseract.js not loaded, skipping preload');
-                return;
-            }
-
-            console.log('[OCR] Starting background OCR preload...');
-
-            try {
-                // Initialize silently (no UI shown during background preload)
-                await ocrEngine.initialize((progress) => {
-                    console.log('[OCR Preload]', progress.status, Math.round(progress.progress * 100) + '%');
-                });
-
-                state.ocrInitialized = true;
-                console.log('[OCR] Background preload complete - OCR ready!');
-            } catch (error) {
-                console.warn('[OCR] Background preload failed:', error.message);
-                // Not critical - will try again when user submits
             }
         }
 

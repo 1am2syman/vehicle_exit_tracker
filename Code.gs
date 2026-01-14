@@ -87,52 +87,90 @@ function doPost(e) {
 // ============================================================================
 
 /**
- * FAST PATH: Plate OCR Only
- * Input: { image: "base64...", type: "plate" }
- * Output: { vehicleNumber: "...", confidence: 0.99 }
+ * FAST PATH: Plate OR Invoice OCR
+ * Input: { image: "base64...", type: "plate" | "invoice" }
+ * Output (plate): { vehicleNumber: "...", confidence: 0.99 }
+ * Output (invoice): { invoiceNumbers: [...], confidence: 0.95 }
  */
 function handleFastOCR(data) {
   const startTime = new Date();
-  Logger.log('Starting FastOCR...');
+  const ocrType = data.type || 'plate';
+  Logger.log(`Starting FastOCR for: ${ocrType}`);
   
   if (!data.image) {
     return createJSONResponse(400, 'Missing image data');
   }
 
   // Define Prompt based on type
-  const prompt = `
-    You are an expert License Plate Recognition (LPR) system for Bangladesh.
-    YOUR GOAL: Extract the vehicle registration number with 100% accuracy.
-    The plate will be in either **BENGALI** or **ENGLISH** script.
-    
-    === INSTRUCTIONS ===
-    1. **DETECT SCRIPT**:
-       - If **English** (e.g., "DHAKA METRO..."), read it exactly as shown.
-       - If **Bengali** (e.g., "ঢাকা মেট্রো..."), you MUST TRANSLITERATE and CONVERT NUMERALS.
-    
-    2. **BENGALI CONVERSION RULES**:
-       - 'ঢাকা মেট্রো' -> 'DHAKA METRO', 'চট্ট মেট্রো' -> 'CHATTA METRO'
-       - 'ক'->'KA', 'খ'->'KHA', 'গ'->'GA', 'ঘ'->'GHA', 'চ'->'CHA', 'ছ'->'CHHA', 'ব'->'BA', 'ম'->'MA'
-       - ০=0, ১=1, ২=2, ৩=3, ৪=4, ৫=5, ৬=6, ৭=7, ৮=8, ৯=9
-       - Format: "REGION-CLASS NUMBER" (e.g., 'DHAKA METRO-GA 12-3456')
-    
-    3. **FINAL OUTPUT**:
-       - Return JSON: {"number": "DHAKA METRO-GA 12-3456", "confidence": 0.98}
-       - If no plate is found: {"number": "", "confidence": 0}
-  `;
+  let prompt;
+  
+  if (ocrType === 'invoice') {
+    prompt = `
+      You are an expert Invoice/Receipt OCR system for Bangladesh.
+      YOUR GOAL: Extract ALL invoice numbers, bill numbers, and reference numbers from this document.
+      
+      === LOOK FOR THESE PATTERNS ===
+      - Invoice No / Invoice Number / INV-XXXX
+      - Bill No / Bill Number
+      - Ref No / Reference Number
+      - Receipt No
+      - Order No / Order ID
+      - BIN (Business Identification Number)
+      - MUSHAK number
+      - Any alphanumeric code that looks like an identifier (e.g., DBBA/0325/3219)
+      
+      === BENGALI NUMERALS ===
+      Convert if found: ০=0, ১=1, ২=2, ৩=3, ৪=4, ৫=5, ৬=6, ৭=7, ৮=8, ৯=9
+      
+      === FINAL OUTPUT ===
+      Return JSON: {"numbers": ["INV-12345", "REF-ABC-789"], "confidence": 0.95}
+      If no numbers found: {"numbers": [], "confidence": 0}
+    `;
+  } else {
+    // Default: Plate OCR
+    prompt = `
+      You are an expert License Plate Recognition (LPR) system for Bangladesh.
+      YOUR GOAL: Extract the vehicle registration number with 100% accuracy.
+      The plate will be in either **BENGALI** or **ENGLISH** script.
+      
+      === INSTRUCTIONS ===
+      1. **DETECT SCRIPT**:
+         - If **English** (e.g., "DHAKA METRO..."), read it exactly as shown.
+         - If **Bengali** (e.g., "ঢাকা মেট্রো..."), you MUST TRANSLITERATE and CONVERT NUMERALS.
+      
+      2. **BENGALI CONVERSION RULES**:
+         - 'ঢাকা মেট্রো' -> 'DHAKA METRO', 'চট্ট মেট্রো' -> 'CHATTA METRO'
+         - 'ক'->'KA', 'খ'->'KHA', 'গ'->'GA', 'ঘ'->'GHA', 'চ'->'CHA', 'ছ'->'CHHA', 'ব'->'BA', 'ম'->'MA'
+         - ০=0, ১=1, ২=2, ৩=3, ৪=4, ৫=5, ৬=6, ৭=7, ৮=8, ৯=9
+         - Format: "REGION-CLASS NUMBER" (e.g., 'DHAKA METRO-GA 12-3456')
+      
+      3. **FINAL OUTPUT**:
+         - Return JSON: {"number": "DHAKA METRO-GA 12-3456", "confidence": 0.98}
+         - If no plate is found: {"number": "", "confidence": 0}
+    `;
+  }
 
   // Call OpenRouter
   const response = callOpenRouter(data.image, prompt);
   const result = parseAIResponse(response.getContentText());
   
   const processingTime = new Date() - startTime;
-  Logger.log(`FastOCR Completed in ${processingTime}ms: ${result.number}`);
+  Logger.log(`FastOCR (${ocrType}) Completed in ${processingTime}ms`);
 
-  return createJSONResponse(200, 'OCR Successful', {
-    vehicleNumber: result.number,
-    confidence: result.confidence,
-    processingTime: processingTime
-  });
+  // Return type-specific response
+  if (ocrType === 'invoice') {
+    return createJSONResponse(200, 'Invoice OCR Successful', {
+      invoiceNumbers: result.numbers || [],
+      confidence: result.confidence || 0,
+      processingTime: processingTime
+    });
+  } else {
+    return createJSONResponse(200, 'Plate OCR Successful', {
+      vehicleNumber: result.number || '',
+      confidence: result.confidence || 0,
+      processingTime: processingTime
+    });
+  }
 }
 
 /**
