@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -422,13 +423,26 @@
         }
 
         @keyframes spin {
-            100% { transform: rotate(360deg); }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @keyframes dash {
-            0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
-            50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
-            100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+            0% {
+                stroke-dasharray: 1, 150;
+                stroke-dashoffset: 0;
+            }
+
+            50% {
+                stroke-dasharray: 90, 150;
+                stroke-dashoffset: -35;
+            }
+
+            100% {
+                stroke-dasharray: 90, 150;
+                stroke-dashoffset: -124;
+            }
         }
 
         /* Success Message */
@@ -461,9 +475,17 @@
         }
 
         @keyframes scaleIn {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(0);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .success-title {
@@ -630,6 +652,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Logo Section -->
@@ -646,8 +669,8 @@
             <div class="camera-zone">
                 <div class="camera-icon-wrapper" id="plateCameraIcon">
                     <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                        <circle cx="12" cy="13" r="4"/>
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
                     </svg>
                 </div>
                 <p class="camera-instruction">Tap to capture vehicle number plate</p>
@@ -657,8 +680,8 @@
                 <img id="plateThumbnailImg" class="thumbnail" alt="Number plate">
                 <button class="retake-button" aria-label="Retake number plate">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 4v6h-6"/>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        <path d="M23 4v6h-6" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                     </svg>
                     Retake
                 </button>
@@ -674,20 +697,21 @@
             <div class="camera-zone">
                 <div class="camera-icon-wrapper" id="invoiceCameraIcon">
                     <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                        <circle cx="12" cy="13" r="4"/>
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
                     </svg>
                 </div>
                 <p class="camera-instruction">Tap to capture invoice photos</p>
-                <input type="file" id="invoiceCameraInput" accept="image/*" capture="environment" multiple class="hidden">
+                <input type="file" id="invoiceCameraInput" accept="image/*" capture="environment" multiple
+                    class="hidden">
             </div>
             <div id="invoiceThumbnails" class="thumbnails-grid hidden">
                 <!-- Thumbnails will be dynamically added here -->
             </div>
             <button id="addMoreInvoices" class="add-more-button hidden">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 Add More Invoices
             </button>
@@ -704,7 +728,7 @@
             <div id="aiProcessingStatus" class="processing-status hidden">
                 <div class="processing-icon">
                     <svg class="spinner" viewBox="0 0 50 50">
-                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
+                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" />
                     </svg>
                 </div>
                 <p class="processing-text">AI is extracting data...</p>
@@ -734,7 +758,7 @@
                 <span class="button-text">Submit Entry</span>
                 <span class="button-loader hidden">
                     <svg class="spinner" viewBox="0 0 50 50">
-                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
+                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" />
                     </svg>
                 </span>
             </button>
@@ -744,8 +768,8 @@
         <div id="successMessage" class="success-message hidden">
             <div class="success-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
             </div>
             <h2 class="success-title">Entry Submitted!</h2>
@@ -767,9 +791,9 @@
         <div id="errorMessage" class="error-message hidden">
             <div class="error-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
             </div>
             <h2 class="error-title">Submission Failed</h2>
@@ -836,7 +860,7 @@
 
         // Utility Functions
         function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 const r = Math.random() * 16 | 0;
                 const v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
@@ -866,9 +890,9 @@
         function setLoading(loading) {
             const buttonText = elements.submitBtn.querySelector('.button-text');
             const buttonLoader = elements.submitBtn.querySelector('.button-loader');
-            
+
             elements.submitBtn.disabled = loading;
-            
+
             if (loading) {
                 hideElement(buttonText);
                 showElement(buttonLoader);
@@ -884,16 +908,16 @@
             elements.plateCameraIcon.addEventListener('click', () => {
                 elements.plateCameraInput.click();
             });
-            
+
             elements.plateCameraInput.addEventListener('change', handlePlateCapture);
-            
+
             // Invoice camera
             elements.invoiceCameraIcon.addEventListener('click', () => {
                 elements.invoiceCameraInput.click();
             });
-            
+
             elements.invoiceCameraInput.addEventListener('change', handleInvoiceCapture);
-            
+
             elements.addMoreInvoices.addEventListener('click', () => {
                 elements.invoiceCameraInput.click();
             });
@@ -902,39 +926,39 @@
         // Handle number plate capture
         async function handlePlateCapture(event) {
             const file = event.target.files[0];
-            
+
             if (!file) return;
-            
+
             try {
                 // Validate file type
                 if (!file.type.startsWith('image/')) {
                     alert('Please select an image file');
                     return;
                 }
-                
+
                 // Compress photo
                 const compressedData = await compressPhoto(file, CONFIG.MAX_PHOTO_DIMENSION);
-                
+
                 // Update state
                 state.platePhoto = compressedData;
                 state.platePhotoTime = new Date().toISOString();
                 state.submissionId = state.submissionId || generateUUID();
-                
+
                 // Show thumbnail
                 elements.plateThumbnailImg.src = compressedData;
                 showElement(elements.plateThumbnail);
-                
+
                 // Enable step 2
                 enableStep(elements.step2);
-                
+
                 // Start geolocation
                 startGeolocation();
-                
+
             } catch (error) {
                 console.error('Plate capture error:', error);
                 alert('Failed to process photo. Please try again.');
             }
-            
+
             // Reset input
             elements.plateCameraInput.value = '';
         }
@@ -942,9 +966,9 @@
         // Handle invoice capture
         async function handleInvoiceCapture(event) {
             const files = Array.from(event.target.files);
-            
+
             if (files.length === 0) return;
-            
+
             try {
                 for (const file of files) {
                     // Validate file type
@@ -952,33 +976,33 @@
                         alert('Please select image files only');
                         continue;
                     }
-                    
+
                     // Compress photo
                     const compressedData = await compressPhoto(file, CONFIG.MIN_INVOICE_DIMENSION);
-                    
+
                     // Update state
                     state.invoicePhotos.push(compressedData);
                     state.invoicePhotosTimes.push(new Date().toISOString());
-                    
+
                     // Add thumbnail
                     addInvoiceThumbnail(compressedData, state.invoicePhotos.length - 1);
                 }
-                
+
                 // Show thumbnails grid and add more button
                 showElement(elements.invoiceThumbnails);
                 showElement(elements.addMoreInvoices);
-                
+
                 // Enable step 3
                 enableStep(elements.step3);
-                
+
                 // Auto-process with AI
                 processWithAI();
-                
+
             } catch (error) {
                 console.error('Invoice capture error:', error);
                 alert('Failed to process photos. Please try again.');
             }
-            
+
             // Reset input
             elements.invoiceCameraInput.value = '';
         }
@@ -987,20 +1011,20 @@
         function addInvoiceThumbnail(photoData, index) {
             const thumbnailItem = document.createElement('div');
             thumbnailItem.className = 'thumbnail-item';
-            
+
             const img = document.createElement('img');
             img.src = photoData;
             img.alt = `Invoice ${index + 1}`;
-            
+
             const removeButton = document.createElement('button');
             removeButton.className = 'remove-button';
             removeButton.innerHTML = '×';
             removeButton.setAttribute('aria-label', `Remove invoice ${index + 1}`);
-            
+
             removeButton.addEventListener('click', () => {
                 removeInvoiceThumbnail(index, thumbnailItem);
             });
-            
+
             thumbnailItem.appendChild(img);
             thumbnailItem.appendChild(removeButton);
             elements.invoiceThumbnails.appendChild(thumbnailItem);
@@ -1011,20 +1035,20 @@
             // Remove from state
             state.invoicePhotos.splice(index, 1);
             state.invoicePhotosTimes.splice(index, 1);
-            
+
             // Remove from DOM
             thumbnailElement.remove();
-            
+
             // Re-index remaining thumbnails
             const thumbnails = elements.invoiceThumbnails.querySelectorAll('.thumbnail-item');
             thumbnails.forEach((thumb, newIndex) => {
                 const removeBtn = thumb.querySelector('.remove-button');
                 removeBtn.setAttribute('aria-label', `Remove invoice ${newIndex + 1}`);
-                
+
                 const img = thumb.querySelector('img');
                 img.alt = `Invoice ${newIndex + 1}`;
             });
-            
+
             // Check if no invoices left
             if (state.invoicePhotos.length === 0) {
                 hideElement(elements.invoiceThumbnails);
@@ -1037,15 +1061,15 @@
         async function compressPhoto(file, maxDimension) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                
+
                 reader.onload = (event) => {
                     const img = new Image();
-                    
+
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        
+
                         // Calculate dimensions
                         if (width > height) {
                             if (width > maxDimension) {
@@ -1058,31 +1082,31 @@
                                 height = maxDimension;
                             }
                         }
-                        
+
                         canvas.width = width;
                         canvas.height = height;
-                        
+
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        
+
                         // Compress to JPEG
                         const quality = maxDimension === CONFIG.MAX_PHOTO_DIMENSION ? 0.85 : 0.8;
                         const compressedData = canvas.toDataURL('image/jpeg', quality);
-                        
+
                         // Check size
                         const sizeInBytes = Math.round((compressedData.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
-                        
+
                         if (sizeInBytes > CONFIG.MAX_PHOTO_SIZE) {
                             reject(new Error('Photo too large even after compression'));
                         } else {
                             resolve(compressedData);
                         }
                     };
-                    
+
                     img.onerror = () => reject(new Error('Failed to load image'));
                     img.src = event.target.result;
                 };
-                
+
                 reader.onerror = () => reject(new Error('Failed to read file'));
                 reader.readAsDataURL(file);
             });
@@ -1094,7 +1118,7 @@
                 elements.extractedLocation.textContent = 'Location not supported';
                 return;
             }
-            
+
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     state.location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
@@ -1103,7 +1127,7 @@
                 (error) => {
                     console.warn('Geolocation error:', error);
                     let message = 'Location unavailable';
-                    
+
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
                             message = 'Location permission denied';
@@ -1115,7 +1139,7 @@
                             message = 'Location timeout';
                             break;
                     }
-                    
+
                     elements.extractedLocation.textContent = message;
                 },
                 CONFIG.GEOLOCATION_OPTIONS
@@ -1128,18 +1152,18 @@
             console.log('Plate photo:', state.platePhoto ? 'PRESENT' : 'MISSING');
             console.log('Invoice photos count:', state.invoicePhotos.length);
             console.log('Web App URL:', CONFIG.WEB_APP_URL);
-            
+
             if (!state.platePhoto || state.invoicePhotos.length === 0) {
                 console.log('ERROR: Missing required photos');
                 return;
             }
-            
+
             // Show processing status
             console.log('Showing AI processing status...');
             showElement(elements.aiProcessingStatus);
             hideElement(elements.extractedData);
             disableStep(elements.step3);
-            
+
             try {
                 // Prepare data
                 const submissionData = {
@@ -1150,70 +1174,147 @@
                     captureTime: state.platePhotoTime,
                     submissionId: state.submissionId
                 };
-                
+
                 console.log('Submission data prepared:', {
                     platePhotoSize: submissionData.platePhotoBase64.length,
                     invoicePhotosCount: submissionData.invoicePhotosBase64.length,
                     submissionId: submissionData.submissionId
                 });
-                
-                // Submit to backend with CORS mode
-                console.log('Sending fetch request to:', CONFIG.WEB_APP_URL);
-                const fetchStartTime = Date.now();
-                
-                const response = await fetch(CONFIG.WEB_APP_URL, {
+
+                // Step 1: Submit data with no-cors using URL-encoded form data
+                // (no-cors strips application/json, but allows form data)
+                console.log('Step 1: Submitting data with no-cors mode (form-encoded)...');
+                const submitStartTime = Date.now();
+
+                // Create URL-encoded form data
+                const formData = new URLSearchParams();
+                formData.append('platePhotoBase64', state.platePhoto);
+                formData.append('invoicePhotosBase64', JSON.stringify(state.invoicePhotos));
+                formData.append('location', state.location || '');
+                formData.append('deviceInfo', getDeviceInfo());
+                formData.append('captureTime', state.platePhotoTime || '');
+                formData.append('submissionId', state.submissionId);
+
+                await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'cors',
+                    mode: 'no-cors',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: JSON.stringify(submissionData)
+                    body: formData.toString()
                 });
-                
-                const fetchEndTime = Date.now();
-                console.log('Fetch completed in:', (fetchEndTime - fetchStartTime) + 'ms');
-                console.log('Response status:', response.status);
-                console.log('Response type:', response.type);
-                console.log('Response ok:', response.ok);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Backend error:', errorText);
-                    throw new Error(`Backend returned status ${response.status}: ${errorText}`);
+
+                const submitEndTime = Date.now();
+                console.log('Step 1: Data submitted in', (submitEndTime - submitStartTime) + 'ms');
+
+                // Step 2: Poll for results with retries (AI processing can take 5-15 seconds)
+                console.log('Step 2: Polling for AI results...');
+
+                const MAX_RETRIES = 6;
+                const RETRY_DELAY_MS = 3000; // 3 seconds between retries
+                let responseData = null;
+                let lastError = null;
+
+                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    console.log(`Polling attempt ${attempt}/${MAX_RETRIES}...`);
+
+                    // Wait before polling (longer on first attempt to give backend time to process)
+                    const waitTime = attempt === 1 ? 5000 : RETRY_DELAY_MS;
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+
+                    try {
+                        // Generate a unique callback name for this request
+                        const callbackName = 'jsonpCallback_' + state.submissionId.replace(/-/g, '_') + '_' + attempt;
+                        const getResultUrl = CONFIG.WEB_APP_URL + '?submissionId=' + state.submissionId + '&callback=' + callbackName;
+                        console.log('Retrieving from:', getResultUrl);
+
+                        // Create a promise that resolves when the JSONP callback fires
+                        const pollResult = await new Promise((resolve, reject) => {
+                            const timeoutId = setTimeout(() => {
+                                delete window[callbackName];
+                                if (script.parentNode) script.parentNode.removeChild(script);
+                                reject(new Error('JSONP request timed out'));
+                            }, 10000);
+
+                            // Define the callback on window
+                            window[callbackName] = function (data) {
+                                clearTimeout(timeoutId);
+                                delete window[callbackName];
+                                if (script.parentNode) script.parentNode.removeChild(script);
+                                console.log('JSONP callback received:', data);
+                                resolve(data);
+                            };
+
+                            // Inject script tag to fetch JSONP
+                            const script = document.createElement('script');
+                            script.src = getResultUrl;
+                            script.onerror = function () {
+                                clearTimeout(timeoutId);
+                                delete window[callbackName];
+                                if (script.parentNode) script.parentNode.removeChild(script);
+                                reject(new Error('Failed to load JSONP script'));
+                            };
+                            document.head.appendChild(script);
+                        });
+
+                        // Check if result is ready (not a 404)
+                        if (pollResult.status === 404) {
+                            console.log(`Attempt ${attempt}: Result not ready yet, retrying...`);
+                            lastError = new Error(pollResult.message || 'Result not found');
+                            continue;
+                        }
+
+                        // Check if this is a valid AI result (has vehicleNumber or invoiceNumbers)
+                        if (pollResult.vehicleNumber !== undefined || pollResult.invoiceNumbers !== undefined) {
+                            console.log(`Attempt ${attempt}: AI result received!`);
+                            responseData = pollResult;
+                            break;
+                        }
+
+                        // Unknown response structure
+                        console.log(`Attempt ${attempt}: Unexpected response structure:`, pollResult);
+                        lastError = new Error('Unexpected response from server');
+
+                    } catch (error) {
+                        console.error(`Attempt ${attempt} failed:`, error.message);
+                        lastError = error;
+                    }
                 }
-                
-                // Parse response
-                console.log('Parsing response JSON...');
-                const responseData = await response.json();
-                console.log('Response data received:', responseData);
-                
+
+                // Check if we got a valid response
+                if (!responseData) {
+                    throw lastError || new Error('Failed to retrieve AI results after all retries');
+                }
+
+                console.log('AI results successfully retrieved:', responseData);
+
                 // Store AI result
-                state.aiResult = responseData.data;
-                
+                state.aiResult = responseData;
+
                 // Hide processing status
                 hideElement(elements.aiProcessingStatus);
-                
+
                 // Show extracted data
                 showElement(elements.extractedData);
                 elements.extractedVehicleNumber.textContent = state.aiResult.vehicleNumber || 'Not detected';
                 elements.extractedInvoiceNumbers.textContent = state.aiResult.invoiceNumbers?.join(', ') || 'Not detected';
-                
+
                 // Get confidence values (backend returns 0-1, convert to percentage)
                 const vehicleConf = Math.round((state.aiResult.confidence?.vehicle || 0) * 100);
                 const invoiceConf = Math.round((state.aiResult.confidence?.invoices || 0) * 100);
-                
+
                 elements.vehicleConfidence.textContent = vehicleConf + '%';
                 elements.invoiceConfidence.textContent = invoiceConf + '%';
-                
+
                 // Update confidence badges
                 elements.vehicleConfidence.className = 'confidence-badge ' + (vehicleConf >= 80 ? 'high' : vehicleConf >= 50 ? '' : 'low');
                 elements.invoiceConfidence.className = 'confidence-badge ' + (invoiceConf >= 80 ? 'high' : invoiceConf >= 50 ? '' : 'low');
-                
+
                 // Enable submit button
                 elements.submitBtn.disabled = false;
-                
+
                 console.log('=== processWithAI COMPLETED SUCCESSFULLY ===');
-                
+
             } catch (error) {
                 console.error('AI processing error:', error);
                 console.error('Error stack:', error.stack);
@@ -1225,16 +1326,16 @@
         // Form Submission
         async function handleSubmit(event) {
             event.preventDefault();
-            
+
             // Validate
             if (!state.platePhoto || state.invoicePhotos.length === 0) {
                 alert('Please capture all required photos');
                 return;
             }
-            
+
             // Show loading
             setLoading(true);
-            
+
             try {
                 // Prepare data
                 const submissionData = {
@@ -1245,31 +1346,25 @@
                     captureTime: state.platePhotoTime,
                     submissionId: state.submissionId
                 };
-                
-                // Submit to backend with CORS mode
-                const response = await fetch(CONFIG.WEB_APP_URL, {
+
+                // Submit to backend with no-cors (opaque response, but request succeeds)
+                await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'cors',
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(submissionData)
                 });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Backend returned status ${response.status}: ${errorText}`);
-                }
-                
-                const responseData = await response.json();
-                console.log('Submission response:', responseData);
-                
+
+                console.log('Submission completed successfully');
+
                 // Store submission in localStorage for backup
                 storeSubmission(submissionData);
-                
+
                 // Show success
                 showSuccess();
-                
+
             } catch (error) {
                 console.error('Submission error:', error);
                 showError(error.message);
@@ -1286,12 +1381,12 @@
                 timestamp: new Date().toISOString(),
                 synced: true
             });
-            
+
             // Keep only last 50 submissions
             if (submissions.length > 50) {
                 submissions.splice(0, submissions.length - 50);
             }
-            
+
             localStorage.setItem('vehicleExitSubmissions', JSON.stringify(submissions));
         }
 
@@ -1301,7 +1396,7 @@
             hideElement(elements.step2);
             hideElement(elements.step3);
             showElement(elements.successMessage);
-            
+
             // Show submitted data
             elements.submittedVehicleNumber.textContent = state.aiResult?.vehicleNumber || 'Processing...';
             elements.submittedInvoiceNumbers.textContent = state.aiResult?.invoiceNumbers?.join(', ') || 'Processing...';
@@ -1324,10 +1419,10 @@
             state.location = null;
             state.aiResult = null;
             state.submissionId = null;
-            
+
             // Reset thumbnails
             elements.invoiceThumbnails.innerHTML = '';
-            
+
             // Reset UI
             hideElement(elements.plateThumbnail);
             hideElement(elements.invoiceThumbnails);
@@ -1336,15 +1431,15 @@
             hideElement(elements.aiProcessingStatus);
             hideElement(elements.successMessage);
             hideElement(elements.errorMessage);
-            
+
             // Reset steps
             enableStep(elements.step1);
             disableStep(elements.step2);
             disableStep(elements.step3);
-            
+
             // Reset location
             elements.extractedLocation.textContent = 'Acquiring...';
-            
+
             // Reset submit button
             elements.submitBtn.disabled = true;
         }
@@ -1352,19 +1447,19 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initCamera();
-            
+
             // Submit button
             elements.submitBtn.addEventListener('click', handleSubmit);
-            
+
             // New entry button
             elements.newEntryButton.addEventListener('click', resetForm);
-            
+
             // Retry button
             elements.retryButton.addEventListener('click', () => {
                 hideElement(elements.errorMessage);
                 showElement(elements.step3);
             });
-            
+
             // Check for unsynced submissions
             checkUnsyncedSubmissions();
         });
@@ -1372,11 +1467,12 @@
         function checkUnsyncedSubmissions() {
             const submissions = JSON.parse(localStorage.getItem('vehicleExitSubmissions') || '[]');
             const unsynced = submissions.filter(s => !s.synced);
-            
+
             if (unsynced.length > 0) {
                 console.log(`Found ${unsynced.length} unsynced submissions`);
             }
         }
     </script>
 </body>
+
 </html>

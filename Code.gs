@@ -258,9 +258,28 @@ function doPost(e) {
   try {
     const startTime = new Date();
     Logger.log('Request received at: ' + startTime.toISOString());
+    Logger.log('Content type: ' + e.postData.type);
     
-    // Parse request data
-    const data = JSON.parse(e.postData.contents);
+    // Parse request data based on content type
+    let data;
+    
+    if (e.postData.type === 'application/x-www-form-urlencoded') {
+      // Parse URL-encoded form data (from no-cors requests)
+      Logger.log('Parsing URL-encoded form data...');
+      data = {
+        platePhotoBase64: e.parameter.platePhotoBase64,
+        invoicePhotosBase64: JSON.parse(e.parameter.invoicePhotosBase64 || '[]'),
+        location: e.parameter.location,
+        deviceInfo: e.parameter.deviceInfo,
+        captureTime: e.parameter.captureTime,
+        submissionId: e.parameter.submissionId
+      };
+    } else {
+      // Parse JSON data (standard requests)
+      Logger.log('Parsing JSON data...');
+      data = JSON.parse(e.postData.contents);
+    }
+    
     Logger.log('Parsed request data:');
     Logger.log('  platePhotoBase64: ' + (data.platePhotoBase64 ? 'PRESENT (' + data.platePhotoBase64.substring(0, 50) + '...)' : 'MISSING'));
     Logger.log('  invoicePhotosBase64: ' + (data.invoicePhotosBase64 ? data.invoicePhotosBase64.length + ' photos' : 'MISSING'));
@@ -332,7 +351,9 @@ function doPost(e) {
     appendToSheet(sheetData);
     Logger.log('Data appended to sheet successfully');
 
-    return createResponse(200, 'Submission successful', {
+    // Store AI result in script properties for retrieval
+    const resultKey = 'aiResult_' + data.submissionId;
+    const resultData = {
       vehicleNumber: aiResult.vehicleNumber,
       invoiceNumbers: aiResult.invoiceNumbers,
       confidence: {
@@ -340,7 +361,11 @@ function doPost(e) {
         invoices: aiResult.invoiceNumbersConfidence
       },
       validationStatus: validationResult.status
-    });
+    };
+    PropertiesService.getScriptProperties().setProperty(resultKey, JSON.stringify(resultData));
+    Logger.log('AI result stored with key: ' + resultKey);
+
+    return createResponse(200, 'Submission successful', resultData);
 
   } catch (error) {
     Logger.log('ERROR in doPost: ' + error.toString());
@@ -608,7 +633,7 @@ function appendToSheet(data) {
   sheet.appendRow(rowData);
 }
 
-// Create HTTP response with CORS headers
+// Create HTTP response with proper CORS handling
 function createResponse(statusCode, message, data = {}) {
   const output = ContentService
     .createTextOutput(JSON.stringify({
@@ -618,11 +643,7 @@ function createResponse(statusCode, message, data = {}) {
     }))
     .setMimeType(ContentService.MimeType.JSON);
   
-  // Add CORS headers
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+  // Google Apps Script requires this specific approach for CORS
   return output;
 }
 
@@ -632,28 +653,74 @@ function doOptions(e) {
     .createTextOutput('')
     .setMimeType(ContentService.MimeType.JSON);
   
-  // Add CORS headers for preflight
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  output.setHeader('Access-Control-Max-Age', '3600');
-  
   return output;
 }
 
-// CORS handling for GET requests
+// CORS handling for GET requests (with JSONP support for file:// origins)
 function doGet(e) {
-  const output = ContentService
-    .createTextOutput(JSON.stringify({
-      status: 200,
-      message: 'AI-Powered Vehicle Exit Tracker API is running'
-    }))
+  // Get callback name for JSONP (if provided)
+  const callback = e.parameter.callback;
+  
+  // Check if this is a request to retrieve AI results
+  const submissionId = e.parameter.submissionId;
+  
+  if (submissionId) {
+    Logger.log('=== doGet STARTED (Result Retrieval) ===');
+    Logger.log('Retrieving AI result for submissionId: ' + submissionId);
+    Logger.log('JSONP callback: ' + (callback || 'none'));
+    
+    const resultKey = 'aiResult_' + submissionId;
+    const resultData = PropertiesService.getScriptProperties().getProperty(resultKey);
+    
+    if (resultData) {
+      Logger.log('AI result found');
+      
+      // If JSONP callback is provided, wrap response in callback function
+      if (callback) {
+        Logger.log('Returning JSONP response');
+        return ContentService
+          .createTextOutput(callback + '(' + resultData + ')')
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      
+      // Standard JSON response
+      return ContentService
+        .createTextOutput(resultData)
+        .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      Logger.log('AI result not found');
+      const errorResponse = JSON.stringify({
+        status: 404,
+        message: 'Result not found. The submission may still be processing.'
+      });
+      
+      // If JSONP callback is provided, wrap error in callback function
+      if (callback) {
+        return ContentService
+          .createTextOutput(callback + '(' + errorResponse + ')')
+          .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      }
+      
+      return ContentService
+        .createTextOutput(errorResponse)
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  // Default response
+  const defaultResponse = JSON.stringify({
+    status: 200,
+    message: 'AI-Powered Vehicle Exit Tracker API is running'
+  });
+  
+  // If JSONP callback is provided, wrap default response
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + defaultResponse + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  
+  return ContentService
+    .createTextOutput(defaultResponse)
     .setMimeType(ContentService.MimeType.JSON);
-  
-  // Add CORS headers
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  return output;
 }
