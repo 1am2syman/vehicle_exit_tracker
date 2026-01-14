@@ -1,39 +1,258 @@
 // Configuration
 const CONFIG = {
-  FOLDER_ID: '1yNhbfNskQf0x74YOrpxsR24TBXHRrr3q', // Google Drive folder ID
-  SHEET_NAME: 'Sheet1'
+  FOLDER_ID: '', // Will be set by setupImageFolder function
+  SHEET_NAME: 'Sheet1',
+  OPENROUTER_API_KEY: '', // Will be set by setupAPI function
+  OPENROUTER_MODEL: 'google/gemini-2.0-flash-exp', // Updated model name
+  MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
+  MIN_CONFIDENCE_SCORE: 0.7, // Minimum confidence threshold
+  API_TIMEOUT: 30000, // 30 seconds
 };
+
+// Setup Functions - Run these from Apps Script editor to configure the system
+
+/**
+ * Setup Google Sheets columns with proper headers and formatting
+ * Run this function from the Apps Script editor to initialize the sheet
+ */
+function setupColumns() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+  
+  // Define column headers
+  const headers = [
+    'Timestamp',
+    'Number Plate Photo URL',
+    'Invoice Photos URLs',
+    'Vehicle Number',
+    'Invoice Numbers',
+    'Vehicle Number Confidence',
+    'Invoice Numbers Confidence',
+    'Location',
+    'Device Info',
+    'Capture Time',
+    'Submission ID',
+    'AI Processing Time',
+    'Validation Status',
+    'Error Message',
+    'Manual Override'
+  ];
+  
+  // Set headers in row 1
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  // Format headers
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#f8f9fa');
+  headerRange.setFontColor('#0f172a');
+  
+  // Freeze header row
+  sheet.setFrozenRows(1);
+  
+  // Set column widths
+  sheet.setColumnWidth(1, 180);  // Timestamp
+  sheet.setColumnWidth(2, 300);  // Number Plate Photo URL
+  sheet.setColumnWidth(3, 300);  // Invoice Photos URLs
+  sheet.setColumnWidth(4, 150);  // Vehicle Number
+  sheet.setColumnWidth(5, 150);  // Invoice Numbers
+  sheet.setColumnWidth(6, 120);  // Vehicle Number Confidence
+  sheet.setColumnWidth(7, 120);  // Invoice Numbers Confidence
+  sheet.setColumnWidth(8, 200);  // Location
+  sheet.setColumnWidth(9, 250);  // Device Info
+  sheet.setColumnWidth(10, 180); // Capture Time
+  sheet.setColumnWidth(11, 200); // Submission ID
+  sheet.setColumnWidth(12, 120); // AI Processing Time
+  sheet.setColumnWidth(13, 100); // Validation Status
+  sheet.setColumnWidth(14, 100); // Error Message
+  sheet.setColumnWidth(15, 100); // Manual Override
+  
+  // Enable text wrapping for appropriate columns
+  const wrapColumns = [2, 3, 4, 5, 9, 14];
+  wrapColumns.forEach(col => {
+    sheet.setColumnWidth(col, sheet.getColumnWidth(col));
+    sheet.getRange(1, col, sheet.getLastRow(), 1).setWrap(true);
+  });
+  
+  // Set up conditional formatting for confidence scores
+  // Vehicle Number Confidence (Column F)
+  const vehicleConfidenceRange = sheet.getRange(2, 6, sheet.getMaxRows(), 1);
+  const vehicleConfidenceRules = [
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberLessThan(0.7)
+      .setBackground('#fee2e2')
+      .setFontColor('#991b1b')
+      .build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberBetween(0.7, 0.85)
+      .setBackground('#fef3c7')
+      .setFontColor('#92400e')
+      .build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenNumberGreaterThan(0.85)
+      .setBackground('#dcfce7')
+      .setFontColor('#166534')
+      .build()
+  ];
+  vehicleConfidenceRange.setConditionalFormatRules(vehicleConfidenceRules);
+  
+  // Invoice Numbers Confidence (Column G)
+  const invoiceConfidenceRange = sheet.getRange(2, 7, sheet.getMaxRows(), 1);
+  invoiceConfidenceRange.setConditionalFormatRules(vehicleConfidenceRules);
+  
+  // Validation Status (Column M)
+  const validationRange = sheet.getRange(2, 13, sheet.getMaxRows(), 1);
+  const validationRules = [
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Fail')
+      .setFontColor('#dc2626')
+      .setFontWeight('bold')
+      .build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Partial')
+      .setFontColor('#ea580c')
+      .setFontWeight('bold')
+      .build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('Success')
+      .setFontColor('#16a34a')
+      .setFontWeight('bold')
+      .build()
+  ];
+  validationRange.setConditionalFormatRules(validationRules);
+  
+  // Format confidence scores as percentage
+  sheet.getRange(2, 6, sheet.getMaxRows(), 2).setNumberFormat('0%');
+  
+  // Format AI Processing Time with "ms" suffix
+  sheet.getRange(2, 12, sheet.getMaxRows(), 1).setNumberFormat('0" ms"');
+  
+  return 'Sheet setup complete! Columns created with proper formatting.';
+}
+
+/**
+ * Setup OpenRouter API Key
+ * Run this function from Apps Script editor and provide your API key
+ * @param {string} apiKey - Your OpenRouter API key
+ */
+function setupAPI(apiKey) {
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error('Please provide a valid API key');
+  }
+  
+  // Store API key in script properties
+  PropertiesService.getScriptProperties().setProperty('OPENROUTER_API_KEY', apiKey);
+  
+  // Update CONFIG
+  CONFIG.OPENROUTER_API_KEY = apiKey;
+  
+  return `API key saved successfully! Key: ${apiKey.substring(0, 10)}...`;
+}
+
+/**
+ * Setup Google Drive Folder ID for image storage
+ * Run this function from Apps Script editor and provide your folder ID
+ * @param {string} folderId - Your Google Drive folder ID
+ */
+function setupImageFolder(folderId) {
+  if (!folderId || folderId.trim() === '') {
+    throw new Error('Please provide a valid folder ID');
+  }
+  
+  try {
+    // Verify folder exists and is accessible
+    const folder = DriveApp.getFolderById(folderId);
+    const folderName = folder.getName();
+    
+    // Store folder ID in script properties
+    PropertiesService.getScriptProperties().setProperty('FOLDER_ID', folderId);
+    
+    // Update CONFIG
+    CONFIG.FOLDER_ID = folderId;
+    
+    return `Image folder setup complete! Folder: ${folderName} (ID: ${folderId})`;
+  } catch (error) {
+    throw new Error(`Failed to access folder: ${error.message}. Please verify the folder ID and sharing permissions.`);
+  }
+}
+
+/**
+ * Load configuration from script properties
+ * Call this at the start of doPost to load saved configuration
+ */
+function loadConfiguration() {
+  const properties = PropertiesService.getScriptProperties();
+  
+  const apiKey = properties.getProperty('OPENROUTER_API_KEY');
+  if (apiKey) {
+    CONFIG.OPENROUTER_API_KEY = apiKey;
+  }
+  
+  const folderId = properties.getProperty('FOLDER_ID');
+  if (folderId) {
+    CONFIG.FOLDER_ID = folderId;
+  }
+}
 
 // Web App Entry Point
 function doPost(e) {
+  // Load configuration from script properties
+  loadConfiguration();
+  
   const lock = LockService.getScriptLock();
   lock.tryLock(10000); // Wait up to 10 seconds for lock
 
   try {
+    const startTime = new Date();
+    
     // Parse request data
     const data = JSON.parse(e.postData.contents);
     
     // Validate required fields
-    if (!data.photoBase64 || !data.vehicleNumber || !data.invoiceNumbers) {
-      return createResponse(400, 'Missing required fields');
+    if (!data.platePhotoBase64 || !data.invoicePhotosBase64 || data.invoicePhotosBase64.length === 0) {
+      return createResponse(400, 'Missing required photos');
     }
 
-    // Upload photo to Drive
-    const photoUrl = uploadPhotoToDrive(data.photoBase64, data.submissionId);
+    // AI Processing
+    const aiResult = processPhotosWithAI(data.platePhotoBase64, data.invoicePhotosBase64);
     
+    // Validation
+    const validationResult = validateExtraction(aiResult);
+    
+    // Upload photos to Drive
+    const platePhotoUrl = uploadPhotoToDrive(data.platePhotoBase64, data.submissionId, 'plate');
+    const invoicePhotoUrls = data.invoicePhotosBase64.map((photo, index) => 
+      uploadPhotoToDrive(photo, data.submissionId, `invoice_${index}`)
+    );
+
     // Append data to sheet
+    const processingTime = new Date() - startTime;
     appendToSheet({
       timestamp: new Date().toISOString(),
-      photoUrl: photoUrl,
-      vehicleNumber: data.vehicleNumber,
-      invoiceNumbers: data.invoiceNumbers.join(', '),
+      numberPlatePhotoUrl: platePhotoUrl,
+      invoicePhotosUrls: invoicePhotoUrls.join(', '),
+      vehicleNumber: aiResult.vehicleNumber || 'N/A',
+      invoiceNumbers: aiResult.invoiceNumbers.join(', ') || 'N/A',
+      vehicleNumberConfidence: aiResult.vehicleNumberConfidence || 0,
+      invoiceNumbersConfidence: aiResult.invoiceNumbersConfidence || 0,
       location: data.location || 'N/A',
       deviceInfo: data.deviceInfo || 'N/A',
       captureTime: data.captureTime || 'N/A',
-      submissionId: data.submissionId
+      submissionId: data.submissionId,
+      aiProcessingTime: processingTime,
+      validationStatus: validationResult.status,
+      errorMessage: validationResult.error || '',
+      manualOverride: false
     });
 
-    return createResponse(200, 'Submission successful', { photoUrl: photoUrl });
+    return createResponse(200, 'Submission successful', {
+      vehicleNumber: aiResult.vehicleNumber,
+      invoiceNumbers: aiResult.invoiceNumbers,
+      confidence: {
+        vehicle: aiResult.vehicleNumberConfidence,
+        invoices: aiResult.invoiceNumbersConfidence
+      },
+      validationStatus: validationResult.status
+    });
 
   } catch (error) {
     console.error('Error:', error);
@@ -43,18 +262,224 @@ function doPost(e) {
   }
 }
 
-// Upload base64 photo to Google Drive
-function uploadPhotoToDrive(base64Data, submissionId) {
+// Process photos with OpenRouter/Gemini 2.5 Flash
+function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
   try {
-    // Extract MIME type and data
+    // Extract vehicle number from plate photo
+    const vehicleResult = extractVehicleNumber(platePhotoBase64);
+    
+    // Extract invoice numbers from invoice photos
+    const invoiceResult = extractInvoiceNumbers(invoicePhotosBase64);
+    
+    return {
+      vehicleNumber: vehicleResult.number,
+      vehicleNumberConfidence: vehicleResult.confidence,
+      invoiceNumbers: invoiceResult.numbers,
+      invoiceNumbersConfidence: invoiceResult.confidence
+    };
+  } catch (error) {
+    console.error('AI Processing error:', error);
+    throw new Error('Failed to process photos with AI');
+  }
+}
+
+// Extract vehicle number from plate photo
+function extractVehicleNumber(photoBase64) {
+  const prompt = `
+    Analyze this image of a vehicle number plate (back of vehicle).
+    
+    Task:
+    1. Identify and extract ONLY the vehicle number/registration number
+    2. This is the back of a vehicle, so the only detectable text will be the number plate
+    3. Ignore any other text, logos, or markings
+    4. Return the vehicle number in uppercase letters and numbers only
+    5. Provide a confidence score (0-1) for your extraction
+    
+    Expected format:
+    - Vehicle numbers typically follow patterns like: ABC-1234, AB1234, 1234-ABC, etc.
+    - Look for alphanumeric characters with possible hyphens or spaces
+    
+    Return your response in this exact JSON format:
+    {
+      "number": "ABC-1234",
+      "confidence": 0.95
+    }
+    
+    If you cannot confidently identify a vehicle number, return:
+    {
+      "number": "",
+      "confidence": 0
+    }
+  `;
+
+  const response = callOpenRouterAPI(photoBase64, prompt);
+  return parseAIResponse(response);
+}
+
+// Extract invoice numbers from invoice photos
+function extractInvoiceNumbers(invoicePhotosBase64) {
+  const allInvoiceNumbers = [];
+  let totalConfidence = 0;
+  
+  for (const photoBase64 of invoicePhotosBase64) {
+    const prompt = `
+      Analyze this invoice document image.
+      
+      Task:
+      1. Find and extract ALL invoice numbers from this document
+      2. Invoice numbers MUST start with "INV" (case-insensitive)
+      3. Extract the complete invoice number including any digits/letters after "INV"
+      4. Provide a confidence score (0-1) for each extraction
+      
+      Expected format:
+      - Invoice numbers typically follow patterns like: INV-001, INV001, INV-2024-001, etc.
+      - Look for text starting with "INV" followed by numbers and possibly hyphens
+      
+      Return your response in this exact JSON format:
+      {
+        "numbers": ["INV-001", "INV-002"],
+        "confidence": 0.92
+      }
+      
+      If you cannot find any invoice numbers starting with "INV", return:
+      {
+        "numbers": [],
+        "confidence": 0
+      }
+    `;
+
+    const response = callOpenRouterAPI(photoBase64, prompt);
+    const result = parseAIResponse(response);
+    
+    allInvoiceNumbers.push(...result.numbers);
+    totalConfidence += result.confidence;
+  }
+  
+  // Remove duplicates
+  const uniqueInvoiceNumbers = [...new Set(allInvoiceNumbers)];
+  
+  // Calculate average confidence
+  const avgConfidence = invoicePhotosBase64.length > 0 
+    ? totalConfidence / invoicePhotosBase64.length 
+    : 0;
+  
+  return {
+    numbers: uniqueInvoiceNumbers,
+    confidence: avgConfidence
+  };
+}
+
+// Call OpenRouter API
+function callOpenRouterAPI(photoBase64, prompt) {
+  try {
+    const url = 'https://openrouter.ai/api/v1/chat/completions';
+    
+    const payload = {
+      model: CONFIG.OPENROUTER_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: photoBase64
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.1, // Low temperature for consistent extraction
+      response_format: { type: 'json_object' } // Force JSON response
+    };
+    
+    const options = {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CONFIG.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://your-website.com', // Required by OpenRouter
+        'X-Title': 'Vehicle Exit Tracker' // Required by OpenRouter
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      timeout: CONFIG.API_TIMEOUT
+    };
+    
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+    
+    if (responseCode !== 200) {
+      console.error('OpenRouter API Error:', responseCode, responseBody);
+      throw new Error(`OpenRouter API returned status ${responseCode}`);
+    }
+    
+    const jsonResponse = JSON.parse(responseBody);
+    const content = jsonResponse.choices[0].message.content;
+    
+    return content;
+  } catch (error) {
+    console.error('OpenRouter API call error:', error);
+    throw new Error('Failed to call OpenRouter API');
+  }
+}
+
+// Parse AI response
+function parseAIResponse(response) {
+  try {
+    const parsed = JSON.parse(response);
+    return parsed;
+  } catch (error) {
+    console.error('Failed to parse AI response:', error);
+    return {
+      number: '',
+      numbers: [],
+      confidence: 0
+    };
+  }
+}
+
+// Validate extraction results
+function validateExtraction(aiResult) {
+  const status = {
+    status: 'Success',
+    error: ''
+  };
+  
+  // Check vehicle number
+  if (!aiResult.vehicleNumber || aiResult.vehicleNumberConfidence < CONFIG.MIN_CONFIDENCE_SCORE) {
+    status.status = 'Partial';
+    status.error += 'Low confidence in vehicle number extraction. ';
+  }
+  
+  // Check invoice numbers
+  if (!aiResult.invoiceNumbers || aiResult.invoiceNumbers.length === 0 || 
+      aiResult.invoiceNumbersConfidence < CONFIG.MIN_CONFIDENCE_SCORE) {
+    status.status = status.status === 'Partial' ? 'Fail' : 'Partial';
+    status.error += 'Low confidence in invoice number extraction. ';
+  }
+  
+  return status;
+}
+
+// Upload base64 photo to Google Drive
+function uploadPhotoToDrive(base64Data, submissionId, photoType) {
+  try {
     const matches = base64Data.match(/^data:(.+);base64,(.+)$/);
     const mimeType = matches[1];
     const data = Utilities.base64Decode(matches[2]);
     
-    // Create blob
-    const blob = Utilities.newBlob(data, mimeType, `vehicle_${submissionId}.jpg`);
+    const timestamp = new Date().getTime();
+    const fileName = `${photoType}_${submissionId}_${timestamp}.jpg`;
     
-    // Upload to Drive
+    const blob = Utilities.newBlob(data, mimeType, fileName);
+    
     const folder = DriveApp.getFolderById(CONFIG.FOLDER_ID);
     const file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -72,13 +497,20 @@ function appendToSheet(data) {
   
   const rowData = [
     data.timestamp,
-    data.photoUrl,
+    data.numberPlatePhotoUrl,
+    data.invoicePhotosUrls,
     data.vehicleNumber,
     data.invoiceNumbers,
+    data.vehicleNumberConfidence,
+    data.invoiceNumbersConfidence,
     data.location,
     data.deviceInfo,
     data.captureTime,
-    data.submissionId
+    data.submissionId,
+    data.aiProcessingTime,
+    data.validationStatus,
+    data.errorMessage,
+    data.manualOverride
   ];
   
   sheet.appendRow(rowData);
@@ -100,7 +532,7 @@ function doGet(e) {
   return ContentService
     .createTextOutput(JSON.stringify({
       status: 200,
-      message: 'Vehicle Exit Tracker API is running'
+      message: 'AI-Powered Vehicle Exit Tracker API is running'
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

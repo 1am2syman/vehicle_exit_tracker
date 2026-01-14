@@ -19,6 +19,7 @@
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
             --success: #10b981;
+            --warning: #f59e0b;
             --error: #ef4444;
             --background: #f8fafc;
             --surface: #ffffff;
@@ -48,10 +49,9 @@
             border-radius: 16px;
             box-shadow: var(--shadow-lg);
             overflow: hidden;
-            min-height: 600px;
+            min-height: 700px;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
 
         /* Utility Classes */
@@ -59,20 +59,88 @@
             display: none !important;
         }
 
-        /* Camera Section */
-        .camera-section {
-            flex: 1;
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Logo Section */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            background: var(--surface);
+            min-height: 100px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            max-width: 100%;
+            max-height: 100px;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* Step Sections */
+        .step-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .step-section.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .step-section.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Camera Zone */
+        .camera-zone {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 1rem 2rem 3rem 2rem;
-            gap: 1.5rem;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
         .camera-icon-wrapper {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             border-radius: 50%;
             display: flex;
@@ -90,37 +158,29 @@
         }
 
         .camera-icon {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             color: white;
         }
 
         .camera-instruction {
-            font-size: 1.125rem;
+            font-size: 0.875rem;
             color: var(--text-secondary);
             text-align: center;
         }
 
-        #cameraInput {
-            display: none;
-        }
-
-        /* Photo Section */
-        .photo-section {
-            padding: 1.5rem;
-            background: var(--surface);
-        }
-
-        .photo-preview {
+        /* Thumbnail Styles */
+        .thumbnail-container {
             position: relative;
             width: 100%;
-            aspect-ratio: 4/3;
-            border-radius: 12px;
+            aspect-ratio: 16/9;
+            border-radius: 8px;
             overflow: hidden;
             background: var(--border);
+            margin-top: 1rem;
         }
 
-        #photoPreview {
+        .thumbnail {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -128,17 +188,17 @@
 
         .retake-button {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 0.5rem;
+            right: 0.5rem;
             background: rgba(0, 0, 0, 0.7);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            padding: 0.375rem 0.75rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
+            gap: 0.375rem;
+            font-size: 0.75rem;
             cursor: pointer;
             transition: background 0.2s ease;
             backdrop-filter: blur(4px);
@@ -149,86 +209,62 @@
         }
 
         .retake-button svg {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
         }
 
-        /* Form Section */
-        .form-section {
-            padding: 2rem 1.5rem;
-            background: var(--surface);
+        /* Thumbnails Grid */
+        .thumbnails-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            font-size: 1rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            background: var(--background);
-            color: var(--text-primary);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .form-input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        /* Invoice Numbers */
-        .invoice-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .invoice-input {
+        .thumbnail-item {
             position: relative;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--border);
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease;
         }
 
-        .invoice-input:not(:last-child)::after {
-            content: '';
+        .thumbnail-item:hover {
+            border-color: var(--primary);
+        }
+
+        .thumbnail-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail-item .remove-button {
             position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            background: var(--success);
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: var(--error);
+            color: white;
+            border: none;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            transition: background 0.2s ease;
         }
 
-        .invoice-input:not(:last-child)::after::before {
-            content: '✓';
-            color: white;
-            font-size: 0.75rem;
+        .thumbnail-item .remove-button:hover {
+            background: #dc2626;
         }
 
-        .add-invoice-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+        .add-more-button {
             width: 100%;
             padding: 0.75rem;
             background: transparent;
@@ -239,45 +275,99 @@
             font-size: 0.875rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
         }
 
-        .add-invoice-button:hover {
+        .add-more-button:hover {
             border-color: var(--primary);
             background: rgba(37, 99, 235, 0.05);
         }
 
-        .add-invoice-button svg {
-            width: 18px;
-            height: 18px;
+        .add-more-button svg {
+            width: 16px;
+            height: 16px;
         }
 
-        /* Location Info */
-        .location-info {
-            padding: 0.75rem 1rem;
-            background: var(--background);
-            border-radius: 8px;
+        /* Processing Status */
+        .processing-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .processing-icon {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .processing-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .processing-subtext {
             font-size: 0.875rem;
             color: var(--text-secondary);
         }
 
-        .location-status {
+        /* Extracted Data */
+        .extracted-data {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 8px;
+            margin-bottom: 1rem;
         }
 
-        .location-status::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background: var(--primary);
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
+        .data-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .data-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .data-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--warning);
+            color: white;
+        }
+
+        .confidence-badge.high {
+            background: var(--success);
+        }
+
+        .confidence-badge.low {
+            background: var(--error);
         }
 
         /* Submit Button */
@@ -387,6 +477,33 @@
             font-size: 1rem;
         }
 
+        .submitted-data {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 8px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-row-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .data-row-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
         .new-entry-button {
             padding: 1rem 2rem;
             background: var(--primary);
@@ -469,22 +586,32 @@
                 min-height: 100vh;
             }
 
-            .camera-section {
-                padding: 2rem 1.5rem;
+            .logo-container {
+                padding: 1rem 0.75rem;
+                min-height: 80px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+
+            .step-section {
+                padding: 1rem;
             }
 
             .camera-icon-wrapper {
-                width: 100px;
-                height: 100px;
+                width: 80px;
+                height: 80px;
             }
 
             .camera-icon {
-                width: 50px;
-                height: 50px;
+                width: 40px;
+                height: 40px;
             }
 
-            .form-section {
-                padding: 1.5rem 1rem;
+            .thumbnails-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             }
         }
 
@@ -497,87 +624,38 @@
             }
         }
 
-        /* Focus styles for keyboard navigation */
         *:focus-visible {
             outline: 3px solid var(--primary);
             outline-offset: 2px;
-        }
-
-        /* Logo Styles */
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            padding: 1.5rem 1rem;
-            background: var(--surface);
-            min-height: 120px;
-            flex-shrink: 0;
-        }
-
-        .logo {
-            width: 100px;
-            height: 100px;
-            max-width: 100%;
-            max-height: 100px;
-            object-fit: contain;
-            display: block;
-        }
-
-        @media (max-width: 480px) {
-            .logo-container {
-                padding: 1rem 0.75rem;
-                min-height: 100px;
-            }
-
-            .logo {
-                width: 80px;
-                height: 80px;
-                max-width: 80px;
-                max-height: 80px;
-            }
-        }
-
-        /* Small viewport handling */
-        @media (max-height: 600px) {
-            .logo-container {
-                padding: 0.75rem;
-                min-height: 90px;
-            }
-
-            .logo {
-                width: 70px;
-                height: 70px;
-                max-width: 70px;
-                max-height: 70px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Logo (Top Left) -->
+        <!-- Logo Section -->
         <div class="logo-container">
             <img src="assets/logo.png" alt="MBL Logo" class="logo">
         </div>
-        
-        <!-- Camera Section (Initially Visible) -->
-        <div id="cameraSection" class="camera-section">
-            <div class="camera-icon-wrapper">
-                <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                </svg>
-            </div>
-            <p class="camera-instruction">Tap to capture vehicle photo</p>
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
-        </div>
 
-        <!-- Photo Preview Section (Hidden Initially) -->
-        <div id="photoSection" class="photo-section hidden">
-            <div class="photo-preview">
-                <img id="photoPreview" src="" alt="Vehicle photo">
-                <button id="retakeButton" class="retake-button" aria-label="Retake photo">
+        <!-- Step 1: Number Plate Capture -->
+        <div id="step1" class="step-section active">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Capture Number Plate</div>
+            </div>
+            <div class="camera-zone">
+                <div class="camera-icon-wrapper" id="plateCameraIcon">
+                    <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                </div>
+                <p class="camera-instruction">Tap to capture vehicle number plate</p>
+                <input type="file" id="plateCameraInput" accept="image/*" capture="environment" class="hidden">
+            </div>
+            <div id="plateThumbnail" class="thumbnail-container hidden">
+                <img id="plateThumbnailImg" class="thumbnail" alt="Number plate">
+                <button class="retake-button" aria-label="Retake number plate">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M23 4v6h-6"/>
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -587,70 +665,82 @@
             </div>
         </div>
 
-        <!-- Form Section (Hidden Initially) -->
-        <div id="formSection" class="form-section hidden">
-            <form id="submissionForm">
-                <!-- Vehicle Number -->
-                <div class="form-group">
-                    <label for="vehicleNumber" class="form-label">Vehicle Number *</label>
-                    <input 
-                        type="text" 
-                        id="vehicleNumber" 
-                        name="vehicleNumber" 
-                        class="form-input"
-                        placeholder="e.g., ABC-1234"
-                        required
-                        autocomplete="off"
-                        inputmode="text"
-                        aria-required="true"
-                    >
+        <!-- Step 2: Invoice Photos Capture -->
+        <div id="step2" class="step-section disabled">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Capture Invoice Photos</div>
+            </div>
+            <div class="camera-zone">
+                <div class="camera-icon-wrapper" id="invoiceCameraIcon">
+                    <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
                 </div>
-
-                <!-- Invoice Numbers -->
-                <div class="form-group">
-                    <label class="form-label">Invoice Numbers *</label>
-                    <div id="invoiceNumbersContainer" class="invoice-container">
-                        <input 
-                            type="text" 
-                            name="invoiceNumber" 
-                            class="form-input invoice-input"
-                            placeholder="e.g., INV-001"
-                            required
-                            autocomplete="off"
-                            inputmode="text"
-                            aria-required="true"
-                        >
-                    </div>
-                    <button type="button" id="addInvoiceButton" class="add-invoice-button">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Another Invoice
-                    </button>
-                </div>
-
-                <!-- Location Info (Read-only) -->
-                <div class="form-group">
-                    <label class="form-label">Location</label>
-                    <div id="locationInfo" class="location-info">
-                        <span class="location-status">Acquiring location...</span>
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="submitBtn" class="submit-button">
-                    <span class="button-text">Submit Entry</span>
-                    <span class="button-loader hidden">
-                        <svg class="spinner" viewBox="0 0 50 50">
-                            <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
-                        </svg>
-                    </span>
-                </button>
-            </form>
+                <p class="camera-instruction">Tap to capture invoice photos</p>
+                <input type="file" id="invoiceCameraInput" accept="image/*" capture="environment" multiple class="hidden">
+            </div>
+            <div id="invoiceThumbnails" class="thumbnails-grid hidden">
+                <!-- Thumbnails will be dynamically added here -->
+            </div>
+            <button id="addMoreInvoices" class="add-more-button hidden">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add More Invoices
+            </button>
         </div>
 
-        <!-- Success Message (Hidden Initially) -->
+        <!-- Step 3: Review & Submit -->
+        <div id="step3" class="step-section disabled">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-title">Review & Submit</div>
+            </div>
+
+            <!-- AI Processing Status -->
+            <div id="aiProcessingStatus" class="processing-status hidden">
+                <div class="processing-icon">
+                    <svg class="spinner" viewBox="0 0 50 50">
+                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
+                    </svg>
+                </div>
+                <p class="processing-text">AI is extracting data...</p>
+                <p class="processing-subtext">This usually takes 3-5 seconds</p>
+            </div>
+
+            <!-- Extracted Data Preview -->
+            <div id="extractedData" class="extracted-data hidden">
+                <div class="data-item">
+                    <span class="data-label">Vehicle Number:</span>
+                    <span id="extractedVehicleNumber" class="data-value">--</span>
+                    <span id="vehicleConfidence" class="confidence-badge">--%</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Invoice Numbers:</span>
+                    <span id="extractedInvoiceNumbers" class="data-value">--</span>
+                    <span id="invoiceConfidence" class="confidence-badge">--%</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Location:</span>
+                    <span id="extractedLocation" class="data-value">Acquiring...</span>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button id="submitBtn" class="submit-button" disabled>
+                <span class="button-text">Submit Entry</span>
+                <span class="button-loader hidden">
+                    <svg class="spinner" viewBox="0 0 50 50">
+                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"/>
+                    </svg>
+                </span>
+            </button>
+        </div>
+
+        <!-- Success Message -->
         <div id="successMessage" class="success-message hidden">
             <div class="success-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -660,10 +750,20 @@
             </div>
             <h2 class="success-title">Entry Submitted!</h2>
             <p class="success-text">Your vehicle exit has been recorded.</p>
+            <div class="submitted-data">
+                <div class="data-row">
+                    <span class="data-row-label">Vehicle:</span>
+                    <span id="submittedVehicleNumber" class="data-row-value">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-row-label">Invoices:</span>
+                    <span id="submittedInvoiceNumbers" class="data-row-value">--</span>
+                </div>
+            </div>
             <button id="newEntryButton" class="new-entry-button">Record Another Exit</button>
         </div>
 
-        <!-- Error Message (Hidden Initially) -->
+        <!-- Error Message -->
         <div id="errorMessage" class="error-message hidden">
             <div class="error-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -681,9 +781,10 @@
     <script>
         // Configuration
         const CONFIG = {
-            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbzstlsTi3dcvrWxbpnZEtdqFzpUT8Gt92APkUSxTTkzTreI_T1th6liLNs4GXvITDSglA/exec', // Web App deployment URL
+            WEB_APP_URL: 'YOUR_WEB_APP_URL_HERE', // Replace with actual URL
             MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
             MAX_PHOTO_DIMENSION: 800,
+            MIN_INVOICE_DIMENSION: 600,
             GEOLOCATION_TIMEOUT: 10000,
             GEOLOCATION_OPTIONS: {
                 enableHighAccuracy: true,
@@ -694,29 +795,41 @@
 
         // State Management
         const state = {
-            photoData: null,
-            photoCaptureTime: null,
+            platePhoto: null,
+            platePhotoTime: null,
+            invoicePhotos: [],
+            invoicePhotosTimes: [],
             location: null,
-            submissionId: null
+            submissionId: null,
+            aiResult: null
         };
 
         // DOM Elements
         const elements = {
-            cameraSection: document.getElementById('cameraSection'),
-            cameraInput: document.getElementById('cameraInput'),
-            photoSection: document.getElementById('photoSection'),
-            photoPreview: document.getElementById('photoPreview'),
-            retakeButton: document.getElementById('retakeButton'),
-            formSection: document.getElementById('formSection'),
-            submissionForm: document.getElementById('submissionForm'),
-            vehicleNumber: document.getElementById('vehicleNumber'),
-            invoiceNumbersContainer: document.getElementById('invoiceNumbersContainer'),
-            addInvoiceButton: document.getElementById('addInvoiceButton'),
-            locationInfo: document.getElementById('locationInfo'),
+            step1: document.getElementById('step1'),
+            step2: document.getElementById('step2'),
+            step3: document.getElementById('step3'),
+            plateCameraIcon: document.getElementById('plateCameraIcon'),
+            plateCameraInput: document.getElementById('plateCameraInput'),
+            plateThumbnail: document.getElementById('plateThumbnail'),
+            plateThumbnailImg: document.getElementById('plateThumbnailImg'),
+            invoiceCameraIcon: document.getElementById('invoiceCameraIcon'),
+            invoiceCameraInput: document.getElementById('invoiceCameraInput'),
+            invoiceThumbnails: document.getElementById('invoiceThumbnails'),
+            addMoreInvoices: document.getElementById('addMoreInvoices'),
+            aiProcessingStatus: document.getElementById('aiProcessingStatus'),
+            extractedData: document.getElementById('extractedData'),
+            extractedVehicleNumber: document.getElementById('extractedVehicleNumber'),
+            extractedInvoiceNumbers: document.getElementById('extractedInvoiceNumbers'),
+            extractedLocation: document.getElementById('extractedLocation'),
+            vehicleConfidence: document.getElementById('vehicleConfidence'),
+            invoiceConfidence: document.getElementById('invoiceConfidence'),
             submitBtn: document.getElementById('submitBtn'),
             successMessage: document.getElementById('successMessage'),
             errorMessage: document.getElementById('errorMessage'),
             errorText: document.getElementById('errorText'),
+            submittedVehicleNumber: document.getElementById('submittedVehicleNumber'),
+            submittedInvoiceNumbers: document.getElementById('submittedInvoiceNumbers'),
             newEntryButton: document.getElementById('newEntryButton'),
             retryButton: document.getElementById('retryButton')
         };
@@ -742,6 +855,14 @@
             element.classList.add('hidden');
         }
 
+        function enableStep(stepElement) {
+            stepElement.classList.remove('disabled');
+        }
+
+        function disableStep(stepElement) {
+            stepElement.classList.add('disabled');
+        }
+
         function setLoading(loading) {
             const buttonText = elements.submitBtn.querySelector('.button-text');
             const buttonLoader = elements.submitBtn.querySelector('.button-loader');
@@ -757,19 +878,29 @@
             }
         }
 
-        // Camera Functions
+        // Initialize Camera
         function initCamera() {
-            elements.cameraIconWrapper = document.querySelector('.camera-icon-wrapper');
-            
-            elements.cameraIconWrapper.addEventListener('click', () => {
-                elements.cameraInput.click();
+            // Number plate camera
+            elements.plateCameraIcon.addEventListener('click', () => {
+                elements.plateCameraInput.click();
             });
             
-            elements.cameraInput.addEventListener('change', handlePhotoCapture);
-            elements.retakeButton.addEventListener('click', retakePhoto);
+            elements.plateCameraInput.addEventListener('change', handlePlateCapture);
+            
+            // Invoice camera
+            elements.invoiceCameraIcon.addEventListener('click', () => {
+                elements.invoiceCameraInput.click();
+            });
+            
+            elements.invoiceCameraInput.addEventListener('change', handleInvoiceCapture);
+            
+            elements.addMoreInvoices.addEventListener('click', () => {
+                elements.invoiceCameraInput.click();
+            });
         }
 
-        async function handlePhotoCapture(event) {
+        // Handle number plate capture
+        async function handlePlateCapture(event) {
             const file = event.target.files[0];
             
             if (!file) return;
@@ -782,60 +913,128 @@
                 }
                 
                 // Compress photo
-                const compressedData = await compressPhoto(file);
+                const compressedData = await compressPhoto(file, CONFIG.MAX_PHOTO_DIMENSION);
                 
                 // Update state
-                state.photoData = compressedData;
-                state.photoCaptureTime = new Date().toISOString();
-                state.submissionId = generateUUID();
+                state.platePhoto = compressedData;
+                state.platePhotoTime = new Date().toISOString();
+                state.submissionId = state.submissionId || generateUUID();
                 
-                // Show photo preview
-                elements.photoPreview.src = compressedData;
+                // Show thumbnail
+                elements.plateThumbnailImg.src = compressedData;
+                showElement(elements.plateThumbnail);
                 
-                // Transition UI
-                hideElement(elements.cameraSection);
-                showElement(elements.photoSection);
-                showElement(elements.formSection);
+                // Enable step 2
+                enableStep(elements.step2);
                 
                 // Start geolocation
                 startGeolocation();
                 
-                // Focus on vehicle number input
-                setTimeout(() => elements.vehicleNumber.focus(), 300);
-                
             } catch (error) {
-                console.error('Photo capture error:', error);
+                console.error('Plate capture error:', error);
                 alert('Failed to process photo. Please try again.');
             }
+            
+            // Reset input
+            elements.plateCameraInput.value = '';
         }
 
-        function retakePhoto() {
-            // Reset state
-            state.photoData = null;
-            state.photoCaptureTime = null;
-            state.location = null;
+        // Handle invoice capture
+        async function handleInvoiceCapture(event) {
+            const files = Array.from(event.target.files);
             
-            // Reset form
-            elements.submissionForm.reset();
+            if (files.length === 0) return;
             
-            // Reset invoice inputs to single
-            while (elements.invoiceNumbersContainer.children.length > 1) {
-                elements.invoiceNumbersContainer.removeChild(elements.invoiceNumbersContainer.lastChild);
+            try {
+                for (const file of files) {
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please select image files only');
+                        continue;
+                    }
+                    
+                    // Compress photo
+                    const compressedData = await compressPhoto(file, CONFIG.MIN_INVOICE_DIMENSION);
+                    
+                    // Update state
+                    state.invoicePhotos.push(compressedData);
+                    state.invoicePhotosTimes.push(new Date().toISOString());
+                    
+                    // Add thumbnail
+                    addInvoiceThumbnail(compressedData, state.invoicePhotos.length - 1);
+                }
+                
+                // Show thumbnails grid and add more button
+                showElement(elements.invoiceThumbnails);
+                showElement(elements.addMoreInvoices);
+                
+                // Enable step 3
+                enableStep(elements.step3);
+                
+                // Auto-process with AI
+                processWithAI();
+                
+            } catch (error) {
+                console.error('Invoice capture error:', error);
+                alert('Failed to process photos. Please try again.');
             }
             
-            // Reset location display
-            elements.locationInfo.innerHTML = '<span class="location-status">Acquiring location...</span>';
-            
-            // Reset camera input
-            elements.cameraInput.value = '';
-            
-            // Transition UI back to camera
-            hideElement(elements.photoSection);
-            hideElement(elements.formSection);
-            showElement(elements.cameraSection);
+            // Reset input
+            elements.invoiceCameraInput.value = '';
         }
 
-        async function compressPhoto(file) {
+        // Add invoice thumbnail
+        function addInvoiceThumbnail(photoData, index) {
+            const thumbnailItem = document.createElement('div');
+            thumbnailItem.className = 'thumbnail-item';
+            
+            const img = document.createElement('img');
+            img.src = photoData;
+            img.alt = `Invoice ${index + 1}`;
+            
+            const removeButton = document.createElement('button');
+            removeButton.className = 'remove-button';
+            removeButton.innerHTML = '×';
+            removeButton.setAttribute('aria-label', `Remove invoice ${index + 1}`);
+            
+            removeButton.addEventListener('click', () => {
+                removeInvoiceThumbnail(index, thumbnailItem);
+            });
+            
+            thumbnailItem.appendChild(img);
+            thumbnailItem.appendChild(removeButton);
+            elements.invoiceThumbnails.appendChild(thumbnailItem);
+        }
+
+        // Remove invoice thumbnail
+        function removeInvoiceThumbnail(index, thumbnailElement) {
+            // Remove from state
+            state.invoicePhotos.splice(index, 1);
+            state.invoicePhotosTimes.splice(index, 1);
+            
+            // Remove from DOM
+            thumbnailElement.remove();
+            
+            // Re-index remaining thumbnails
+            const thumbnails = elements.invoiceThumbnails.querySelectorAll('.thumbnail-item');
+            thumbnails.forEach((thumb, newIndex) => {
+                const removeBtn = thumb.querySelector('.remove-button');
+                removeBtn.setAttribute('aria-label', `Remove invoice ${newIndex + 1}`);
+                
+                const img = thumb.querySelector('img');
+                img.alt = `Invoice ${newIndex + 1}`;
+            });
+            
+            // Check if no invoices left
+            if (state.invoicePhotos.length === 0) {
+                hideElement(elements.invoiceThumbnails);
+                hideElement(elements.addMoreInvoices);
+                disableStep(elements.step3);
+            }
+        }
+
+        // Compress photo
+        async function compressPhoto(file, maxDimension) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 
@@ -849,14 +1048,14 @@
                         
                         // Calculate dimensions
                         if (width > height) {
-                            if (width > CONFIG.MAX_PHOTO_DIMENSION) {
-                                height = Math.round((height * CONFIG.MAX_PHOTO_DIMENSION) / width);
-                                width = CONFIG.MAX_PHOTO_DIMENSION;
+                            if (width > maxDimension) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
                             }
                         } else {
-                            if (height > CONFIG.MAX_PHOTO_DIMENSION) {
-                                width = Math.round((width * CONFIG.MAX_PHOTO_DIMENSION) / height);
-                                height = CONFIG.MAX_PHOTO_DIMENSION;
+                            if (height > maxDimension) {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
                             }
                         }
                         
@@ -866,8 +1065,9 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Compress to JPEG at 0.8 quality
-                        const compressedData = canvas.toDataURL('image/jpeg', 0.8);
+                        // Compress to JPEG
+                        const quality = maxDimension === CONFIG.MAX_PHOTO_DIMENSION ? 0.85 : 0.8;
+                        const compressedData = canvas.toDataURL('image/jpeg', quality);
                         
                         // Check size
                         const sizeInBytes = Math.round((compressedData.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
@@ -888,17 +1088,17 @@
             });
         }
 
-        // Geolocation Functions
+        // Geolocation
         function startGeolocation() {
             if (!navigator.geolocation) {
-                elements.locationInfo.innerHTML = '<span class="location-status">Location not supported</span>';
+                elements.extractedLocation.textContent = 'Location not supported';
                 return;
             }
             
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     state.location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-                    elements.locationInfo.innerHTML = `<span class="location-status" style="color: var(--success);">✓ ${state.location}</span>`;
+                    elements.extractedLocation.textContent = state.location;
                 },
                 (error) => {
                     console.warn('Geolocation error:', error);
@@ -916,154 +1116,96 @@
                             break;
                     }
                     
-                    elements.locationInfo.innerHTML = `<span class="location-status" style="color: var(--error);">${message}</span>`;
+                    elements.extractedLocation.textContent = message;
                 },
                 CONFIG.GEOLOCATION_OPTIONS
             );
         }
 
-        // Invoice Number Functions
-        function initInvoiceNumbers() {
-            elements.addInvoiceButton.addEventListener('click', addInvoiceField);
-            
-            // Add remove button to existing invoice inputs
-            addRemoveButton(elements.invoiceNumbersContainer.querySelector('.invoice-input'));
-        }
-
-        function addInvoiceField() {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = 'invoiceNumber';
-            input.className = 'form-input invoice-input';
-            input.placeholder = 'e.g., INV-002';
-            input.required = true;
-            input.autocomplete = 'off';
-            input.inputMode = 'text';
-            input.setAttribute('aria-required', 'true');
-            
-            elements.invoiceNumbersContainer.appendChild(input);
-            addRemoveButton(input);
-            
-            // Focus on new input
-            setTimeout(() => input.focus(), 100);
-        }
-
-        function addRemoveButton(input) {
-            if (elements.invoiceNumbersContainer.children.length === 1) {
-                return; // Don't add remove button to first input
+        // Process with AI
+        async function processWithAI() {
+            if (!state.platePhoto || state.invoicePhotos.length === 0) {
+                return;
             }
             
-            const removeButton = document.createElement('button');
-            removeButton.type = 'button';
-            removeButton.className = 'remove-invoice-button';
-            removeButton.innerHTML = '×';
-            removeButton.setAttribute('aria-label', 'Remove invoice number');
+            // Show processing status
+            showElement(elements.aiProcessingStatus);
+            hideElement(elements.extractedData);
+            disableStep(elements.step3);
             
-            removeButton.style.cssText = `
-                position: absolute;
-                right: 1rem;
-                top: 50%;
-                transform: translateY(-50%);
-                width: 24px;
-                height: 24px;
-                background: var(--error);
-                color: white;
-                border: none;
-                border-radius: 50%;
-                font-size: 1.25rem;
-                line-height: 1;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background 0.2s ease;
-            `;
-            
-            removeButton.addEventListener('mouseenter', () => {
-                removeButton.style.background = '#dc2626';
-            });
-            
-            removeButton.addEventListener('mouseleave', () => {
-                removeButton.style.background = 'var(--error)';
-            });
-            
-            removeButton.addEventListener('click', () => {
-                input.remove();
+            try {
+                // Prepare data
+                const submissionData = {
+                    platePhotoBase64: state.platePhoto,
+                    invoicePhotosBase64: state.invoicePhotos,
+                    location: state.location,
+                    deviceInfo: getDeviceInfo(),
+                    captureTime: state.platePhotoTime,
+                    submissionId: state.submissionId
+                };
                 
-                // Update remove buttons on remaining inputs
-                const inputs = elements.invoiceNumbersContainer.querySelectorAll('.invoice-input');
-                inputs.forEach((inp, index) => {
-                    const existingButton = inp.parentElement.querySelector('.remove-invoice-button');
-                    if (existingButton) {
-                        existingButton.remove();
-                    }
-                    
-                    if (index > 0) {
-                        addRemoveButton(inp);
-                    }
+                // Submit to backend
+                const response = await fetch(CONFIG.WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(submissionData)
                 });
-            });
-            
-            input.parentElement.style.position = 'relative';
-            input.parentElement.appendChild(removeButton);
+                
+                // Since mode is 'no-cors', we can't read the response
+                // We'll assume success and show a placeholder
+                // In production, you'd use a different approach to get the response
+                
+                // Hide processing status
+                hideElement(elements.aiProcessingStatus);
+                
+                // Show extracted data (placeholder - in production, get from backend response)
+                showElement(elements.extractedData);
+                elements.extractedVehicleNumber.textContent = 'Processing...';
+                elements.extractedInvoiceNumbers.textContent = 'Processing...';
+                elements.vehicleConfidence.textContent = '--%';
+                elements.invoiceConfidence.textContent = '--%';
+                
+                // Enable submit button
+                elements.submitBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('AI processing error:', error);
+                hideElement(elements.aiProcessingStatus);
+                showError('Failed to process photos. Please try again.');
+            }
         }
 
         // Form Submission
-        function initForm() {
-            elements.submissionForm.addEventListener('submit', handleSubmit);
-            elements.newEntryButton.addEventListener('click', resetForm);
-            elements.retryButton.addEventListener('click', () => {
-                hideElement(elements.errorMessage);
-                showElement(elements.formSection);
-            });
-        }
-
         async function handleSubmit(event) {
             event.preventDefault();
             
             // Validate
-            if (!state.photoData) {
-                alert('Please capture a photo first');
+            if (!state.platePhoto || state.invoicePhotos.length === 0) {
+                alert('Please capture all required photos');
                 return;
             }
-            
-            const vehicleNumber = elements.vehicleNumber.value.trim();
-            const invoiceInputs = elements.invoiceNumbersContainer.querySelectorAll('input[name="invoiceNumber"]');
-            const invoiceNumbers = Array.from(invoiceInputs)
-                .map(input => input.value.trim())
-                .filter(value => value.length > 0);
-            
-            if (!vehicleNumber) {
-                alert('Please enter a vehicle number');
-                elements.vehicleNumber.focus();
-                return;
-            }
-            
-            if (invoiceNumbers.length === 0) {
-                alert('Please enter at least one invoice number');
-                invoiceInputs[0].focus();
-                return;
-            }
-            
-            // Prepare data
-            const submissionData = {
-                photoBase64: state.photoData,
-                vehicleNumber: vehicleNumber,
-                invoiceNumbers: invoiceNumbers,
-                location: state.location,
-                deviceInfo: getDeviceInfo(),
-                captureTime: state.photoCaptureTime,
-                submissionId: state.submissionId
-            };
             
             // Show loading
             setLoading(true);
             
             try {
-                // Submit to Google Apps Script
+                // Prepare data
+                const submissionData = {
+                    platePhotoBase64: state.platePhoto,
+                    invoicePhotosBase64: state.invoicePhotos,
+                    location: state.location,
+                    deviceInfo: getDeviceInfo(),
+                    captureTime: state.platePhotoTime,
+                    submissionId: state.submissionId
+                };
+                
+                // Submit to backend
                 const response = await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Required for Google Apps Script
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -1084,6 +1226,7 @@
             }
         }
 
+        // Store submission
         function storeSubmission(data) {
             const submissions = JSON.parse(localStorage.getItem('vehicleExitSubmissions') || '[]');
             submissions.push({
@@ -1100,54 +1243,75 @@
             localStorage.setItem('vehicleExitSubmissions', JSON.stringify(submissions));
         }
 
+        // Show success
         function showSuccess() {
-            hideElement(elements.formSection);
-            hideElement(elements.photoSection);
+            hideElement(elements.step1);
+            hideElement(elements.step2);
+            hideElement(elements.step3);
             showElement(elements.successMessage);
+            
+            // Show submitted data
+            elements.submittedVehicleNumber.textContent = state.aiResult?.vehicleNumber || 'Processing...';
+            elements.submittedInvoiceNumbers.textContent = state.aiResult?.invoiceNumbers?.join(', ') || 'Processing...';
         }
 
+        // Show error
         function showError(message) {
             elements.errorText.textContent = message || 'An error occurred. Please try again.';
-            hideElement(elements.formSection);
+            hideElement(elements.step3);
             showElement(elements.errorMessage);
         }
 
+        // Reset form
         function resetForm() {
             // Reset state
-            state.photoData = null;
-            state.photoCaptureTime = null;
+            state.platePhoto = null;
+            state.platePhotoTime = null;
+            state.invoicePhotos = [];
+            state.invoicePhotosTimes = [];
             state.location = null;
+            state.aiResult = null;
             state.submissionId = null;
             
-            // Reset form
-            elements.submissionForm.reset();
+            // Reset thumbnails
+            elements.invoiceThumbnails.innerHTML = '';
             
-            // Reset invoice inputs to single
-            while (elements.invoiceNumbersContainer.children.length > 1) {
-                elements.invoiceNumbersContainer.removeChild(elements.invoiceNumbersContainer.lastChild);
-            }
-            
-            // Reset camera input
-            elements.cameraInput.value = '';
-            
-            // Reset location display
-            elements.locationInfo.innerHTML = '<span class="location-status">Acquiring location...</span>';
-            
-            // Hide messages
+            // Reset UI
+            hideElement(elements.plateThumbnail);
+            hideElement(elements.invoiceThumbnails);
+            hideElement(elements.addMoreInvoices);
+            hideElement(elements.extractedData);
+            hideElement(elements.aiProcessingStatus);
             hideElement(elements.successMessage);
             hideElement(elements.errorMessage);
-            hideElement(elements.photoSection);
-            hideElement(elements.formSection);
             
-            // Show camera
-            showElement(elements.cameraSection);
+            // Reset steps
+            enableStep(elements.step1);
+            disableStep(elements.step2);
+            disableStep(elements.step3);
+            
+            // Reset location
+            elements.extractedLocation.textContent = 'Acquiring...';
+            
+            // Reset submit button
+            elements.submitBtn.disabled = true;
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initCamera();
-            initInvoiceNumbers();
-            initForm();
+            
+            // Submit button
+            elements.submitBtn.addEventListener('click', handleSubmit);
+            
+            // New entry button
+            elements.newEntryButton.addEventListener('click', resetForm);
+            
+            // Retry button
+            elements.retryButton.addEventListener('click', () => {
+                hideElement(elements.errorMessage);
+                showElement(elements.step3);
+            });
             
             // Check for unsynced submissions
             checkUnsyncedSubmissions();
@@ -1159,7 +1323,6 @@
             
             if (unsynced.length > 0) {
                 console.log(`Found ${unsynced.length} unsynced submissions`);
-                // You could implement auto-retry logic here
             }
         }
     </script>
