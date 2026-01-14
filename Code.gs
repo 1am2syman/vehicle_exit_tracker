@@ -312,6 +312,21 @@ function doPost(e) {
       Logger.log('Validation error: ' + validationResult.error);
     }
     
+    // IMMEDIATE STORAGE: Store AI result in script properties for retrieval
+    // We do this BEFORE uploads to make the UI responsive faster
+    const resultKey = 'aiResult_' + data.submissionId;
+    const resultData = {
+      vehicleNumber: aiResult.vehicleNumber,
+      invoiceNumbers: aiResult.invoiceNumbers,
+      confidence: {
+        vehicle: aiResult.vehicleNumberConfidence,
+        invoices: aiResult.invoiceNumbersConfidence
+      },
+      validationStatus: validationResult.status
+    };
+    PropertiesService.getScriptProperties().setProperty(resultKey, JSON.stringify(resultData));
+    Logger.log('AI result stored with key: ' + resultKey);
+    
     // Upload photos to Drive
     Logger.log('Starting Drive uploads...');
     Logger.log('Uploading plate photo...');
@@ -350,20 +365,6 @@ function doPost(e) {
     Logger.log('Sheet data prepared, calling appendToSheet...');
     appendToSheet(sheetData);
     Logger.log('Data appended to sheet successfully');
-
-    // Store AI result in script properties for retrieval
-    const resultKey = 'aiResult_' + data.submissionId;
-    const resultData = {
-      vehicleNumber: aiResult.vehicleNumber,
-      invoiceNumbers: aiResult.invoiceNumbers,
-      confidence: {
-        vehicle: aiResult.vehicleNumberConfidence,
-        invoices: aiResult.invoiceNumbersConfidence
-      },
-      validationStatus: validationResult.status
-    };
-    PropertiesService.getScriptProperties().setProperty(resultKey, JSON.stringify(resultData));
-    Logger.log('AI result stored with key: ' + resultKey);
 
     return createResponse(200, 'Submission successful', resultData);
 

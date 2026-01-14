@@ -1210,8 +1210,8 @@
                 // Step 2: Poll for results with retries (AI processing can take 5-15 seconds)
                 console.log('Step 2: Polling for AI results...');
 
-                const MAX_RETRIES = 6;
-                const RETRY_DELAY_MS = 3000; // 3 seconds between retries
+                const MAX_RETRIES = 10;
+                const RETRY_DELAY_MS = 4000; // 4 seconds between retries
                 let responseData = null;
                 let lastError = null;
 
