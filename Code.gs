@@ -421,19 +421,23 @@ function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
     // Invoice Requests
     invoicePhotosBase64.forEach(photo => {
       const invoicePrompt = `
-        Analyze this invoice document.
+        Analyze this invoice document image.
         
-        YOUR GOAL: Extract Invoice Numbers that strictly start with "INV".
+        YOUR GOAL: Find the Invoice Number by any means necessary.
         
-        === RULES ===
-        1. **STRICT PREFIX**: Only extract strings starting with "INV" (case-insensitive: INV, Inv, inv).
-        2. **CAPTURE FULL ID**: Include the prefix and the entire alphanumeric sequence following it (slashes, dashes, numbers).
-           - Valid: "INV-10293", "Inv 2024/001", "INV123456"
-           - Invalid: "Order-123", "Bill No 555" (Do NOT extract these)
-        3. **MULTIPLE**: If multiple "INV" numbers exist, extract all of them.
+        The invoice number usually appears near the top right or within header boxes.
+        It is often labeled as: "Invoice No", "INV No", "Ref No", "Bill No", or just "INV".
         
-        Return JSON: {"numbers": ["INV-10293", "INV-2024-001"], "confidence": 0.95}
-        If none found: {"numbers": [], "confidence": 0}
+        The value typically starts with "INV" but might be complex (e.g. "INV-DBBA/0325/3219").
+        
+        === INSTRUCTIONS ===
+        1. Scan the ENTIRE document text.
+        2. Look specifically for the string starting with "INV" or "inv".
+        3. If you find a label "Invoice No" but the value DOES NOT start with INV, return it anyway.
+        4. Extract the FULL string (including slashes, dashes, digits).
+        
+        Return JSON: {"numbers": ["INV-DBBA/0325/3219", "272025"], "confidence": 0.95}
+        If ABSOLUTELY nothing is found: {"numbers": [], "confidence": 0}
       `;
       requests.push(buildOpenRouterRequest(photo, invoicePrompt));
     });
