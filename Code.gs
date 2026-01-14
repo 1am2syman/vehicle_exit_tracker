@@ -1,8 +1,8 @@
 // Configuration
-const CONFIG = {
-  FOLDER_ID: '', // Will be set by setupImageFolder function
+let CONFIG = {
+  FOLDER_ID: '', // Will be loaded from script properties
   SHEET_NAME: 'Sheet1',
-  OPENROUTER_API_KEY: '', // Will be set by setupAPI function
+  OPENROUTER_API_KEY: '', // Will be loaded from script properties
   OPENROUTER_MODEL: 'google/gemini-2.0-flash-exp', // Updated model name
   MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
   MIN_CONFIDENCE_SCORE: 0.7, // Minimum confidence threshold
@@ -247,35 +247,71 @@ function doPost(e) {
   // Load configuration from script properties
   loadConfiguration();
   
+  Logger.log('=== doPost STARTED ===');
+  Logger.log('Configuration loaded:');
+  Logger.log('  FOLDER_ID: ' + (CONFIG.FOLDER_ID ? 'SET' : 'NOT SET'));
+  Logger.log('  API_KEY: ' + (CONFIG.OPENROUTER_API_KEY ? 'SET' : 'NOT SET'));
+  
   const lock = LockService.getScriptLock();
   lock.tryLock(10000); // Wait up to 10 seconds for lock
 
   try {
     const startTime = new Date();
+    Logger.log('Request received at: ' + startTime.toISOString());
     
     // Parse request data
     const data = JSON.parse(e.postData.contents);
+    Logger.log('Parsed request data:');
+    Logger.log('  platePhotoBase64: ' + (data.platePhotoBase64 ? 'PRESENT (' + data.platePhotoBase64.substring(0, 50) + '...)' : 'MISSING'));
+    Logger.log('  invoicePhotosBase64: ' + (data.invoicePhotosBase64 ? data.invoicePhotosBase64.length + ' photos' : 'MISSING'));
+    Logger.log('  submissionId: ' + data.submissionId);
+    Logger.log('  location: ' + data.location);
+    Logger.log('  deviceInfo: ' + data.deviceInfo);
     
     // Validate required fields
     if (!data.platePhotoBase64 || !data.invoicePhotosBase64 || data.invoicePhotosBase64.length === 0) {
+      Logger.log('VALIDATION FAILED: Missing required photos');
       return createResponse(400, 'Missing required photos');
     }
+    
+    Logger.log('Validation passed, starting AI processing...');
 
     // AI Processing
+    Logger.log('Calling processPhotosWithAI...');
     const aiResult = processPhotosWithAI(data.platePhotoBase64, data.invoicePhotosBase64);
+    Logger.log('AI Processing result:');
+    Logger.log('  vehicleNumber: ' + aiResult.vehicleNumber);
+    Logger.log('  vehicleNumberConfidence: ' + aiResult.vehicleNumberConfidence);
+    Logger.log('  invoiceNumbers: ' + aiResult.invoiceNumbers.join(', '));
+    Logger.log('  invoiceNumbersConfidence: ' + aiResult.invoiceNumbersConfidence);
     
     // Validation
+    Logger.log('Validating extraction results...');
     const validationResult = validateExtraction(aiResult);
+    Logger.log('Validation result: ' + validationResult.status);
+    if (validationResult.error) {
+      Logger.log('Validation error: ' + validationResult.error);
+    }
     
     // Upload photos to Drive
+    Logger.log('Starting Drive uploads...');
+    Logger.log('Uploading plate photo...');
     const platePhotoUrl = uploadPhotoToDrive(data.platePhotoBase64, data.submissionId, 'plate');
-    const invoicePhotoUrls = data.invoicePhotosBase64.map((photo, index) => 
-      uploadPhotoToDrive(photo, data.submissionId, `invoice_${index}`)
-    );
+    Logger.log('Plate photo URL: ' + platePhotoUrl);
+    
+    Logger.log('Uploading ' + data.invoicePhotosBase64.length + ' invoice photos...');
+    const invoicePhotoUrls = data.invoicePhotosBase64.map((photo, index) => {
+      const url = uploadPhotoToDrive(photo, data.submissionId, `invoice_${index}`);
+      Logger.log('Invoice photo ' + index + ' URL: ' + url);
+      return url;
+    });
 
     // Append data to sheet
     const processingTime = new Date() - startTime;
-    appendToSheet({
+    Logger.log('Total processing time: ' + processingTime + 'ms');
+    
+    Logger.log('Appending to sheet...');
+    const sheetData = {
       timestamp: new Date().toISOString(),
       numberPlatePhotoUrl: platePhotoUrl,
       invoicePhotosUrls: invoicePhotoUrls.join(', '),
@@ -291,7 +327,10 @@ function doPost(e) {
       validationStatus: validationResult.status,
       errorMessage: validationResult.error || '',
       manualOverride: false
-    });
+    };
+    Logger.log('Sheet data prepared, calling appendToSheet...');
+    appendToSheet(sheetData);
+    Logger.log('Data appended to sheet successfully');
 
     return createResponse(200, 'Submission successful', {
       vehicleNumber: aiResult.vehicleNumber,
@@ -304,10 +343,14 @@ function doPost(e) {
     });
 
   } catch (error) {
+    Logger.log('ERROR in doPost: ' + error.toString());
+    Logger.log('Error stack: ' + error.stack);
     console.error('Error:', error);
     return createResponse(500, 'Internal server error: ' + error.message);
   } finally {
     lock.releaseLock();
+    Logger.log('Lock released');
+    Logger.log('=== doPost COMPLETED ===');
   }
 }
 
@@ -565,23 +608,52 @@ function appendToSheet(data) {
   sheet.appendRow(rowData);
 }
 
-// Create HTTP response
+// Create HTTP response with CORS headers
 function createResponse(statusCode, message, data = {}) {
-  return ContentService
+  const output = ContentService
     .createTextOutput(JSON.stringify({
       status: statusCode,
       message: message,
       data: data
     }))
     .setMimeType(ContentService.MimeType.JSON);
+  
+  // Add CORS headers
+  output.setHeader('Access-Control-Allow-Origin', '*');
+  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  return output;
 }
 
-// CORS handling for OPTIONS requests
+// CORS handling for OPTIONS preflight requests
+function doOptions(e) {
+  const output = ContentService
+    .createTextOutput('')
+    .setMimeType(ContentService.MimeType.JSON);
+  
+  // Add CORS headers for preflight
+  output.setHeader('Access-Control-Allow-Origin', '*');
+  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  output.setHeader('Access-Control-Max-Age', '3600');
+  
+  return output;
+}
+
+// CORS handling for GET requests
 function doGet(e) {
-  return ContentService
+  const output = ContentService
     .createTextOutput(JSON.stringify({
       status: 200,
       message: 'AI-Powered Vehicle Exit Tracker API is running'
     }))
     .setMimeType(ContentService.MimeType.JSON);
+  
+  // Add CORS headers
+  output.setHeader('Access-Control-Allow-Origin', '*');
+  output.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  return output;
 }

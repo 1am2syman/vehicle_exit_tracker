@@ -781,7 +781,7 @@
     <script>
         // Configuration
         const CONFIG = {
-            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbystQdOSfd8s7r4UTfqWvhpDgWYu5RKTiOr2prCeE7mwxXmtNYYvOn-wOcnSSnv2l-P/exec', // Replace with actual URL
+            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbz0fiesUwdaOLHXLHILjfP_-cew9Xsw-heeXSvRfWtcC4-U-87g54BZyx-gCOjRM7yg/exec', // Replace with actual URL
             MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
             MAX_PHOTO_DIMENSION: 800,
             MIN_INVOICE_DIMENSION: 600,
@@ -1124,11 +1124,18 @@
 
         // Process with AI
         async function processWithAI() {
+            console.log('=== processWithAI STARTED ===');
+            console.log('Plate photo:', state.platePhoto ? 'PRESENT' : 'MISSING');
+            console.log('Invoice photos count:', state.invoicePhotos.length);
+            console.log('Web App URL:', CONFIG.WEB_APP_URL);
+            
             if (!state.platePhoto || state.invoicePhotos.length === 0) {
+                console.log('ERROR: Missing required photos');
                 return;
             }
             
             // Show processing status
+            console.log('Showing AI processing status...');
             showElement(elements.aiProcessingStatus);
             hideElement(elements.extractedData);
             disableStep(elements.step3);
@@ -1144,35 +1151,72 @@
                     submissionId: state.submissionId
                 };
                 
-                // Submit to backend
+                console.log('Submission data prepared:', {
+                    platePhotoSize: submissionData.platePhotoBase64.length,
+                    invoicePhotosCount: submissionData.invoicePhotosBase64.length,
+                    submissionId: submissionData.submissionId
+                });
+                
+                // Submit to backend with CORS mode
+                console.log('Sending fetch request to:', CONFIG.WEB_APP_URL);
+                const fetchStartTime = Date.now();
+                
                 const response = await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
+                    mode: 'cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(submissionData)
                 });
                 
-                // Since mode is 'no-cors', we can't read the response
-                // We'll assume success and show a placeholder
-                // In production, you'd use a different approach to get the response
+                const fetchEndTime = Date.now();
+                console.log('Fetch completed in:', (fetchEndTime - fetchStartTime) + 'ms');
+                console.log('Response status:', response.status);
+                console.log('Response type:', response.type);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Backend error:', errorText);
+                    throw new Error(`Backend returned status ${response.status}: ${errorText}`);
+                }
+                
+                // Parse response
+                console.log('Parsing response JSON...');
+                const responseData = await response.json();
+                console.log('Response data received:', responseData);
+                
+                // Store AI result
+                state.aiResult = responseData.data;
                 
                 // Hide processing status
                 hideElement(elements.aiProcessingStatus);
                 
-                // Show extracted data (placeholder - in production, get from backend response)
+                // Show extracted data
                 showElement(elements.extractedData);
-                elements.extractedVehicleNumber.textContent = 'Processing...';
-                elements.extractedInvoiceNumbers.textContent = 'Processing...';
-                elements.vehicleConfidence.textContent = '--%';
-                elements.invoiceConfidence.textContent = '--%';
+                elements.extractedVehicleNumber.textContent = state.aiResult.vehicleNumber || 'Not detected';
+                elements.extractedInvoiceNumbers.textContent = state.aiResult.invoiceNumbers?.join(', ') || 'Not detected';
+                
+                // Get confidence values (backend returns 0-1, convert to percentage)
+                const vehicleConf = Math.round((state.aiResult.confidence?.vehicle || 0) * 100);
+                const invoiceConf = Math.round((state.aiResult.confidence?.invoices || 0) * 100);
+                
+                elements.vehicleConfidence.textContent = vehicleConf + '%';
+                elements.invoiceConfidence.textContent = invoiceConf + '%';
+                
+                // Update confidence badges
+                elements.vehicleConfidence.className = 'confidence-badge ' + (vehicleConf >= 80 ? 'high' : vehicleConf >= 50 ? '' : 'low');
+                elements.invoiceConfidence.className = 'confidence-badge ' + (invoiceConf >= 80 ? 'high' : invoiceConf >= 50 ? '' : 'low');
                 
                 // Enable submit button
                 elements.submitBtn.disabled = false;
                 
+                console.log('=== processWithAI COMPLETED SUCCESSFULLY ===');
+                
             } catch (error) {
                 console.error('AI processing error:', error);
+                console.error('Error stack:', error.stack);
                 hideElement(elements.aiProcessingStatus);
                 showError('Failed to process photos. Please try again.');
             }
@@ -1202,15 +1246,23 @@
                     submissionId: state.submissionId
                 };
                 
-                // Submit to backend
+                // Submit to backend with CORS mode
                 const response = await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
+                    mode: 'cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(submissionData)
                 });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Backend returned status ${response.status}: ${errorText}`);
+                }
+                
+                const responseData = await response.json();
+                console.log('Submission response:', responseData);
                 
                 // Store submission in localStorage for backup
                 storeSubmission(submissionData);

@@ -1,208 +1,253 @@
-# Debugging Guide - Submission Failure
+# Debugging Guide - AI-Powered Vehicle Exit Tracker
 
-## Problem Identified
+## Current Issue
 
-The `WEB_APP_URL` in `index.html` (line 628) is set to the **Google Apps Script project editor URL**, not the **Web App deployment URL**.
+**Symptoms:**
+- Frontend shows "AI is extracting data..." indefinitely
+- No data appears in Google Sheet
+- No images uploaded to Google Drive
+- No API calls visible in OpenRouter activity
+- Web App URL is correct
+- Folder ID is correct
+- API key is configured
 
-### Current (Incorrect) URL:
-```
-https://script.google.com/u/0/home/projects/1NnwYjQrMwJ5y6AEoh37y_cSVNsrWv0_OEJeV647orzNzXVxKECwqMxkC/edit
-```
+## Most Likely Causes
 
-### What it Should Be (Web App URL):
-```
-https://script.google.com/macros/s/ABC123XYZ.../exec
-```
+Based on the symptoms, here are the most probable causes (in order of likelihood):
 
-## How to Fix
+### 1. **Web App Not Redeployed** (Most Likely - 90%)
+- You updated [`Code.gs`](Code.gs) but didn't redeploy the Web App
+- The old version is still running without the new code
+- **Solution**: Redeploy the Web App after updating [`Code.gs`](Code.gs)
 
-### Step 1: Find Your Web App URL
+### 2. **Frontend Fetch Hanging** (Likely - 70%)
+- The `fetch()` call is timing out or not completing
+- Browser is waiting indefinitely for response
+- **Solution**: Check browser console logs to see where it stops
 
-1. Go to your Google Sheet
-2. Click **Extensions** → **Apps Script**
-3. Click **Deploy** → **Manage deployments**
-4. You should see your deployment listed
-5. Click on the deployment (the one with type "Web app")
-6. **Copy the Web App URL** from the "Web app" section
+### 3. **CORS Issue** (Likely - 60%)
+- `mode: 'no-cors'` prevents reading response
+- Request might be blocked by CORS policies
+- **Solution**: Backend needs proper CORS headers
 
-The Web App URL will look like:
-```
-https://script.google.com/macros/s/ABC123XYZ456DEF789/exec
-```
+### 4. **Configuration Not Loading** (Likely - 50%)
+- [`loadConfiguration()`](Code.gs:231) not finding saved properties
+- CONFIG values remain empty at runtime
+- **Solution**: Run setup functions again to verify configuration saved
 
-### Step 2: Update index.html
+### 5. **API Key Invalid** (Likely - 30%)
+- API key is malformed or expired
+- OpenRouter rejecting requests
+- **Solution**: Verify API key in OpenRouter dashboard
 
-1. Open `index.html` in your code editor
-2. Find line 628 (search for `WEB_APP_URL`)
-3. Replace the entire URL with your actual Web App URL
+## Diagnostic Steps
 
-**Before:**
-```javascript
-WEB_APP_URL: 'https://script.google.com/u/0/home/projects/1NnwYjQrMwJ5y6AEoh37y_cSVNsrWv0_OEJeV647orzNzXVxKECwqMxkC/edit',
-```
+### Step 1: Check Browser Console Logs
 
-**After:**
-```javascript
-WEB_APP_URL: 'https://script.google.com/macros/s/ABC123XYZ456DEF789/exec',
-```
+1. Open your deployed frontend in browser
+2. Press F12 to open Developer Tools
+3. Go to "Console" tab
+4. Click "Submit Entry" button
+5. **Look for these logs:**
+   ```
+   === processWithAI STARTED ===
+   Plate photo: PRESENT/MISSING
+   Invoice photos count: X
+   Web App URL: https://...
+   Submission data prepared: {...}
+   Sending fetch request to: https://...
+   Fetch completed in: XXXms
+   Fetch response status: 200 (or other)
+   Fetch response ok: true/false
+   === processWithAI COMPLETED ===
+   ```
+6. **Note where it stops** - This will tell us exactly where the issue is
 
-4. Save the file
+### Step 2: Check Apps Script Execution Logs
 
-### Step 3: Push to GitHub
+1. Go to Google Sheet
+2. Click "Extensions" > "Apps Script"
+3. Click "Executions" on left sidebar
+4. Click on the most recent execution (top of list)
+5. **Look for these logs:**
+   ```
+   === doPost STARTED ===
+   Configuration loaded:
+    FOLDER_ID: SET/NOT SET
+    API_KEY: SET/NOT SET
+   Request received at: YYYY-MM-DDTHH:MM:SS.sssZ
+   Parsed request data:
+    platePhotoBase64: PRESENT (...) / MISSING
+    invoicePhotosBase64: X photos / MISSING
+    submissionId: xxx-xxx-xxx-xxxx
+    location: ...
+    deviceInfo: ...
+   Validation passed, starting AI processing...
+   Calling processPhotosWithAI...
+   === processPhotosWithAI STARTED ===
+   Plate photo size: XXXXX characters
+   Invoice photos count: X
+   Calling extractVehicleNumber...
+   Vehicle extraction result: {...}
+   Calling extractInvoiceNumbers...
+   Invoice extraction result: {...}
+   processPhotosWithAI completed successfully
+   Validation result: Success/Partial/Fail
+   Starting Drive uploads...
+   Uploading plate photo...
+   Plate photo URL: https://...
+   Uploading X invoice photos...
+   Invoice photo 0 URL: https://...
+   ...
+   Invoice photo X-1 URL: https://...
+   Appending to sheet...
+   Data appended to sheet successfully
+   === doPost COMPLETED ===
+   ```
+6. **Note any errors** - Look for "ERROR in" messages
+
+### Step 3: Verify Configuration
+
+1. In Apps Script editor, run this function:
+   ```javascript
+   function viewConfiguration() {
+     const properties = PropertiesService.getScriptProperties();
+     const config = {
+       'Folder ID': properties.getProperty('FOLDER_ID') || 'Not set',
+       'API Key': properties.getProperty('OPENROUTER_API_KEY') ? 'Set (hidden)' : 'Not set'
+     };
+     
+     Logger.log(JSON.stringify(config, null, 2));
+     return JSON.stringify(config, null, 2);
+   }
+   ```
+2. Click "Run" and select `viewConfiguration`
+3. Check the execution log
+4. **Both should show "SET" if configuration is correct**
+
+### Step 4: Test API Key Manually
+
+1. Go to https://openrouter.ai/keys
+2. Verify your API key is active and has credits
+3. Check if key starts with `sk-or-` or similar prefix
+4. Note the exact key format
+
+### Step 5: Test Web App URL Directly
+
+1. Copy your Web App URL
+2. Paste it in browser address bar
+3. You should see: `{"status":200,"message":"AI-Powered Vehicle Exit Tracker API is running"}`
+4. If you see this, the Web App is accessible
+
+## Common Issues & Solutions
+
+### Issue: "FOLDER_ID is NOT SET" in logs
+
+**Cause**: Configuration not loaded from script properties
+
+**Solutions**:
+1. Run [`setupImageFolder()`](Code.gs:177) again
+2. Verify folder ID is correct
+3. Check Apps Script permissions (it needs Drive access)
+
+### Issue: "API_KEY is NOT SET" in logs
+
+**Cause**: Configuration not loaded from script properties
+
+**Solutions**:
+1. Run [`setupAPI()`](Code.gs:136) again
+2. Verify API key is correct
+3. Check key format (should start with `sk-` or similar)
+
+### Issue: Request hangs at "Sending fetch request"
+
+**Cause**: Network issue or CORS problem
+
+**Solutions**:
+1. Check if Web App URL is correct
+2. Try accessing from different network
+3. Check browser network tab for failed requests
+4. Verify no browser extensions blocking requests
+
+### Issue: No logs in Apps Script Executions
+
+**Cause**: Web App not being called
+
+**Solutions**:
+1. **Redeploy Web App** (Most Important!)
+   - Go to Extensions > Apps Script
+   - Click "Deploy" > "Manage deployments"
+   - Click "Edit" on your deployment
+   - Make changes if needed
+   - Click "Deploy" again
+   - **Copy new Web App URL**
+   - **Update [`WEB_APP_URL`](index.html:784) in [`index.html`](index.html)
+
+2. Check deployment settings:
+   - Execute as: "Me"
+   - Who has access: "Anyone"
+
+## Quick Fixes
+
+### Fix 1: Redeploy Web App (Try First)
+
+1. Open Google Sheet
+2. Extensions > Apps Script
+3. Deploy > New deployment
+4. Description: "Vehicle Exit Tracker AI v1.1"
+5. Execute as: "Me"
+6. Who has access: "Anyone"
+7. Click "Deploy"
+8. **Copy the new Web App URL**
+9. Update line 784 in [`index.html`](index.html): `WEB_APP_URL: 'YOUR_WEB_APP_URL_HERE'`
+10. Replace with your new URL
+
+### Fix 2: Verify Configuration
+
+1. In Apps Script editor, run [`setupAPI()`](Code.gs:136)
+2. Enter your API key
+3. Run [`setupImageFolder()`](Code.gs:177)
+4. Enter your folder ID
+5. Run [`viewConfiguration()`](Code.gs:231) to verify both are set
+
+### Fix 3: Check CORS
+
+If you see CORS errors in browser console:
+
+1. Add this to [`doGet()`](Code.gs:580) in [`Code.gs`](Code.gs):
+   ```javascript
+   function doGet(e) {
+     return ContentService
+       .createTextOutput(JSON.stringify({
+         status: 200,
+         message: 'AI-Powered Vehicle Exit Tracker API is running'
+       }))
+       .setMimeType(ContentService.MimeType.JSON)
+       .setHeader('Access-Control-Allow-Origin', '*')
+       .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+   }
+   ```
+
+### Fix 4: Test with Simple Request
+
+Test if Web App is working by sending a simple request:
 
 ```bash
-git add index.html
-git commit -m "Fix Web App URL configuration"
-git push
+curl -X POST https://your-web-app-url/exec \
+  -H "Content-Type: application/json" \
+  -d '{"platePhotoBase64":"test","invoicePhotosBase64":["test"],"submissionId":"test-123"}'
 ```
 
-Wait 1-2 minutes for GitHub Pages to redeploy.
+You should see a response or check Apps Script Executions for the request.
 
-### Step 4: Test Again
+## What to Report Back
 
-1. Open your GitHub Pages URL
-2. Try submitting a test entry
-3. Check your Google Sheet for the new row
-4. Check your Google Drive folder for the uploaded photo
+After following the diagnostic steps, please report:
 
-## Additional Issues to Check
+1. **Browser Console Logs** - What do you see when clicking Submit?
+2. **Apps Script Execution Logs** - What does the latest execution show?
+3. **Where does it stop** - Which log appears last before stopping?
+4. **Any error messages** - Any "ERROR in" messages?
+5. **Configuration status** - Do logs show "SET" or "NOT SET"?
 
-### Issue 1: Google Apps Script Not Deployed as Web App
-
-If you haven't deployed the script as a Web App yet:
-
-1. In Apps Script editor, click **Deploy** → **New deployment**
-2. Click the gear icon (⚙️) → **Web app**
-3. Configure:
-   - **Description**: "Vehicle Exit Tracker v1"
-   - **Execute as**: "Me"
-   - **Who has access**: "Anyone" (CRITICAL!)
-4. Click **Deploy**
-5. Authorize when prompted
-6. Copy the Web App URL
-
-### Issue 2: FOLDER_ID Not Configured
-
-Check `Code.gs` line 3:
-
-```javascript
-FOLDER_ID: 'YOUR_DRIVE_FOLDER_ID', // Replace with actual folder ID
-```
-
-If this still says `YOUR_DRIVE_FOLDER_ID`:
-
-1. Go to your Google Drive folder "Vehicle Exit Photos"
-2. Look at the URL in your browser
-3. Copy the folder ID (the long string after `/folders/`)
-4. Update `Code.gs` with the actual folder ID
-5. Redeploy the Web App
-
-### Issue 3: Sheet Name Mismatch
-
-Check `Code.gs` line 4:
-
-```javascript
-SHEET_NAME: 'Sheet1'
-```
-
-If your Google Sheet has a different tab name:
-1. Open your Google Sheet
-2. Check the tab name at the bottom
-3. Update `SHEET_NAME` in `Code.gs` to match
-4. Redeploy the Web App
-
-## Testing the Web App Directly
-
-You can test if the Web App is working by opening the Web App URL in your browser.
-
-You should see:
-```json
-{
-  "status": 200,
-  "message": "Vehicle Exit Tracker API is running"
-}
-```
-
-If you see an error, the Web App is not deployed correctly.
-
-## Checking Google Apps Script Logs
-
-1. Go to your Google Sheet
-2. Click **Extensions** → **Apps Script**
-3. Click **Executions** (left sidebar)
-4. Look for recent executions
-5. Click on any failed executions to see error details
-
-Common errors:
-- **"Exception: The script does not have permission"** - Need to re-authorize
-- **"Exception: No item with the given ID was found"** - Wrong FOLDER_ID
-- **"Exception: The sheet with the given name was not found"** - Wrong SHEET_NAME
-
-## Browser Console Debugging
-
-To see what's happening in the browser:
-
-1. Open your webapp
-2. Press F12 (or right-click → Inspect)
-3. Go to the **Console** tab
-4. Try submitting a form
-5. Look for any error messages
-
-Common browser errors:
-- **"Failed to fetch"** - Wrong URL or CORS issue
-- **"Network request failed"** - Network connectivity issue
-- **"404 Not Found"** - Web App URL is incorrect
-
-## Verifying Data Flow
-
-### 1. Frontend Sends Data
-Open browser console and look for:
-```
-Submission error: ...
-```
-If you see this, the fetch request is failing.
-
-### 2. Web App Receives Data
-Check Google Apps Script Executions log for:
-- Successful executions should show status "Completed"
-- Failed executions will show error details
-
-### 3. Photo Uploads to Drive
-Check your Google Drive folder "Vehicle Exit Photos":
-- Photos should appear with names like `vehicle_[UUID].jpg`
-
-### 4. Data Appends to Sheet
-Check your Google Sheet:
-- New rows should appear at the bottom
-- Each row should have 8 columns of data
-
-## Complete Configuration Checklist
-
-- [ ] Web App deployed (not just script saved)
-- [ ] Web App access set to "Anyone"
-- [ ] Web App URL copied correctly (ends with `/exec`)
-- [ ] FOLDER_ID replaced with actual folder ID
-- [ ] SHEET_NAME matches Google Sheet tab name
-- [ ] Google Sheet has 8 headers in row 1
-- [ ] Google Drive folder is shared with "Anyone with the link"
-- [ ] index.html WEB_APP_URL is correct
-- [ ] Changes pushed to GitHub
-- [ ] GitHub Pages has redeployed
-
-## Still Not Working?
-
-If you've checked everything above and it still doesn't work:
-
-1. **Clear browser cache** and try again
-2. **Try a different browser** (Chrome, Firefox, Safari)
-3. **Check internet connection**
-4. **Verify Google account permissions** - try redeploying the Web App
-5. **Create a new deployment** - sometimes old deployments have issues
-
-## Contact Support
-
-If you need further assistance, provide:
-1. The Web App URL (you can redact the middle part)
-2. Screenshot of Google Apps Script Executions log
-3. Screenshot of browser console errors
-4. Screenshot of Google Sheet (showing headers and any data)
+This will help identify the exact issue and provide the right fix.
