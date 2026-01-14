@@ -995,8 +995,13 @@
                 // Enable step 3
                 enableStep(elements.step3);
 
-                // Auto-process with AI
-                processWithAI();
+                // Auto-process with AI - DISABLED by request
+                // processWithAI();
+
+                // Show 'Ready to Process' state
+                showElement(elements.submitBtn);
+                elements.submitBtn.disabled = false;
+                elements.submitBtn.textContent = 'Process & Submit';
 
             } catch (error) {
                 console.error('Invoice capture error:', error);
@@ -1323,7 +1328,7 @@
             }
         }
 
-        // Form Submission
+        // Form Submission (Now acts as Process & Submit)
         async function handleSubmit(event) {
             event.preventDefault();
 
@@ -1333,45 +1338,11 @@
                 return;
             }
 
-            // Show loading
-            setLoading(true);
-
-            try {
-                // Prepare data
-                const submissionData = {
-                    platePhotoBase64: state.platePhoto,
-                    invoicePhotosBase64: state.invoicePhotos,
-                    location: state.location,
-                    deviceInfo: getDeviceInfo(),
-                    captureTime: state.platePhotoTime,
-                    submissionId: state.submissionId
-                };
-
-                // Submit to backend with no-cors (opaque response, but request succeeds)
-                await fetch(CONFIG.WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(submissionData)
-                });
-
-                console.log('Submission completed successfully');
-
-                // Store submission in localStorage for backup
-                storeSubmission(submissionData);
-
-                // Show success
-                showSuccess();
-
-            } catch (error) {
-                console.error('Submission error:', error);
-                showError(error.message);
-            } finally {
-                setLoading(false);
-            }
+            // Trigger AI Processing which handles the upload & submission
+            await processWithAI();
         }
+
+
 
         // Store submission
         function storeSubmission(data) {

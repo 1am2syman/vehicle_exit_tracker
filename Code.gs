@@ -3,7 +3,7 @@ let CONFIG = {
   FOLDER_ID: '', // Will be loaded from script properties
   SHEET_NAME: 'Sheet1',
   OPENROUTER_API_KEY: '', // Will be loaded from script properties
-  OPENROUTER_MODEL: 'google/gemini-2.0-flash-exp', // Updated model name
+  OPENROUTER_MODEL: 'openai/gpt-4o', // Upgraded to GPT-4o for best-in-class OCR & Reasoning
   MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
   MIN_CONFIDENCE_SCORE: 0.7, // Minimum confidence threshold
   API_TIMEOUT: 30000, // 30 seconds
@@ -387,33 +387,53 @@ function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
     const requests = [];
     
     // Plate Request
+    // "Best in World" prompt for Bengali/English LPR
     const platePrompt = `
-      Analyze this image of a vehicle number plate (back of vehicle).
+      You are an expert License Plate Recognition (LPR) system for Bangladesh.
       
-      Task:
-      1. Identify and extract the vehicle number/registration number.
-      2. The number plate may use **Bengali script** (e.g., 'ঢাকা মেট্রো-গ ৩১-১৯৫৭') or English.
-      3. If in Bengali, Transliterate to English if standard, otherwise return the Bengali text EXACTLY as seen.
-      4. Convert Bengali numerals to English numerals (e.g., '৩১-১৯৫৭' -> '31-1957').
+      YOUR GOAL: Extract the vehicle registration number with 100% accuracy.
       
-      Return JSON: {"number": "Dhaka Metro-Ga 31-1957", "confidence": 0.95}
-      If not found: {"number": "", "confidence": 0}
+      The plate will be in either **BENGALI** or **ENGLISH** script.
+      
+      === INSTRUCTIONS ===
+      1. **DETECT SCRIPT**:
+         - If **English** (e.g., "DHAKA METRO..."), read it exactly as shown.
+         - If **Bengali** (e.g., "ঢাকা মেট্রো..."), you MUST TRANSLITERATE and CONVERT NUMERALS.
+      
+      2. **BENGALI CONVERSION RULES**:
+         - **Region**: 'ঢাকা মেট্রো' -> 'DHAKA METRO', 'চট্ট মেট্রো' -> 'CHATTA METRO' (or similar standard transliteration).
+         - **Class**: 'ক'->'KA', 'খ'->'KHA', 'গ'->'GA', 'ঘ'->'GHA', 'চ'->'CHA', 'ছ'->'CHHA', 'ব'->'BA', 'ম'->'MA', etc.
+         - **Numerals**: Convert ALL Bengali digits to English:
+           ০=0, ১=1, ২=2, ৩=3, ৪=4, ৫=5, ৬=6, ৭=7, ৮=8, ৯=9
+         - **Format**: Combine them into standard format "REGION-CLASS NUMBER"
+           Example Input: 'ঢাকা মেট্রো-গ ১২-৩৪৫৬' 
+           Example Output: 'DHAKA METRO-GA 12-3456'
+      
+      3. **FINAL OUTPUT**:
+         - Return the sanitized, uppercase English string.
+         - Ignore dashes (-) if they break the standard format, but keep them if they separate the class and number (standard is "DIMENSION-CLASS XX-XXXX").
+      
+      Return JSON: {"number": "DHAKA METRO-GA 12-3456", "confidence": 0.98}
+      If no plate is found: {"number": "", "confidence": 0}
     `;
     requests.push(buildOpenRouterRequest(platePhotoBase64, platePrompt));
 
     // Invoice Requests
     invoicePhotosBase64.forEach(photo => {
       const invoicePrompt = `
-        Analyze this invoice document image.
+        Analyze this invoice document.
         
-        Task:
-        1. Find and extract the Invoice Number.
-        2. Look for labels like "Invoice No", "INV", "Bill No", "Chalan No", "Order No", or "Reference".
-        3. The Value usually looks like "INV-DBBA/0325/3219" or similar alphanumeric strings.
-        4. Return ALL detected invoice numbers.
+        YOUR GOAL: Extract Invoice Numbers that strictly start with "INV".
         
-        Return JSON: {"numbers": ["INV-DBBA/0325/3219"], "confidence": 0.92}
-        If not found: {"numbers": [], "confidence": 0}
+        === RULES ===
+        1. **STRICT PREFIX**: Only extract strings starting with "INV" (case-insensitive: INV, Inv, inv).
+        2. **CAPTURE FULL ID**: Include the prefix and the entire alphanumeric sequence following it (slashes, dashes, numbers).
+           - Valid: "INV-10293", "Inv 2024/001", "INV123456"
+           - Invalid: "Order-123", "Bill No 555" (Do NOT extract these)
+        3. **MULTIPLE**: If multiple "INV" numbers exist, extract all of them.
+        
+        Return JSON: {"numbers": ["INV-10293", "INV-2024-001"], "confidence": 0.95}
+        If none found: {"numbers": [], "confidence": 0}
       `;
       requests.push(buildOpenRouterRequest(photo, invoicePrompt));
     });
