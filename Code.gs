@@ -131,46 +131,95 @@ function setupColumns() {
 
 /**
  * Setup OpenRouter API Key
- * Run this function from Apps Script editor and provide your API key
- * @param {string} apiKey - Your OpenRouter API key
+ * Run this function from Apps Script editor - it will prompt you for API key
  */
-function setupAPI(apiKey) {
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error('Please provide a valid API key');
+function setupAPI() {
+  // Prompt user for API key
+  const ui = SpreadsheetApp.getUi();
+  const apiKey = ui.prompt(
+    'Setup OpenRouter API',
+    'Please enter your OpenRouter API key:\n\n(Get your key from https://openrouter.ai/keys)',
+    ui.ButtonSet.OK_CANCEL
+  );
+  
+  // Check if user cancelled
+  if (apiKey.getSelectedButton() !== ui.Button.OK) {
+    return 'Setup cancelled.';
+  }
+  
+  const apiKeyValue = apiKey.getResponseText();
+  
+  // Validate API key
+  if (!apiKeyValue || apiKeyValue.trim() === '') {
+    ui.alert('Error', 'Please provide a valid API key.', ui.ButtonSet.OK);
+    return 'API key is required.';
   }
   
   // Store API key in script properties
-  PropertiesService.getScriptProperties().setProperty('OPENROUTER_API_KEY', apiKey);
+  PropertiesService.getScriptProperties().setProperty('OPENROUTER_API_KEY', apiKeyValue.trim());
   
   // Update CONFIG
-  CONFIG.OPENROUTER_API_KEY = apiKey;
+  CONFIG.OPENROUTER_API_KEY = apiKeyValue.trim();
   
-  return `API key saved successfully! Key: ${apiKey.substring(0, 10)}...`;
+  ui.alert(
+    'Success!',
+    `API key saved successfully!\n\nKey: ${apiKeyValue.trim().substring(0, 10)}...`,
+    ui.ButtonSet.OK
+  );
+  
+  return `API key saved successfully! Key: ${apiKeyValue.trim().substring(0, 10)}...`;
 }
 
 /**
  * Setup Google Drive Folder ID for image storage
- * Run this function from Apps Script editor and provide your folder ID
- * @param {string} folderId - Your Google Drive folder ID
+ * Run this function from Apps Script editor - it will prompt you for the folder ID
  */
-function setupImageFolder(folderId) {
-  if (!folderId || folderId.trim() === '') {
-    throw new Error('Please provide a valid folder ID');
+function setupImageFolder() {
+  // Prompt user for folder ID
+  const ui = SpreadsheetApp.getUi();
+  const folderId = ui.prompt(
+    'Setup Image Folder',
+    'Please enter your Google Drive Folder ID:\n\n(You can find this in the folder URL: drive.google.com/drive/folders/FOLDER_ID)',
+    ui.ButtonSet.OK_CANCEL
+  );
+  
+  // Check if user cancelled
+  if (folderId.getSelectedButton() !== ui.Button.OK) {
+    return 'Setup cancelled.';
+  }
+  
+  const folderIdValue = folderId.getResponseText();
+  
+  // Validate folder ID
+  if (!folderIdValue || folderIdValue.trim() === '') {
+    ui.alert('Error', 'Please provide a valid folder ID.', ui.ButtonSet.OK);
+    return 'Folder ID is required.';
   }
   
   try {
     // Verify folder exists and is accessible
-    const folder = DriveApp.getFolderById(folderId);
+    const folder = DriveApp.getFolderById(folderIdValue.trim());
     const folderName = folder.getName();
     
     // Store folder ID in script properties
-    PropertiesService.getScriptProperties().setProperty('FOLDER_ID', folderId);
+    PropertiesService.getScriptProperties().setProperty('FOLDER_ID', folderIdValue.trim());
     
     // Update CONFIG
-    CONFIG.FOLDER_ID = folderId;
+    CONFIG.FOLDER_ID = folderIdValue.trim();
     
-    return `Image folder setup complete! Folder: ${folderName} (ID: ${folderId})`;
+    ui.alert(
+      'Success!',
+      `Image folder configured successfully!\n\nFolder: ${folderName}\nID: ${folderIdValue.trim()}`,
+      ui.ButtonSet.OK
+    );
+    
+    return `Image folder setup complete! Folder: ${folderName} (ID: ${folderIdValue.trim()})`;
   } catch (error) {
+    ui.alert(
+      'Error',
+      `Failed to access folder: ${error.message}\n\nPlease verify:\n1. The folder ID is correct\n2. The folder exists\n3. You have access to the folder\n4. The folder has "Anyone with link can view" permission`,
+      ui.ButtonSet.OK
+    );
     throw new Error(`Failed to access folder: ${error.message}. Please verify the folder ID and sharing permissions.`);
   }
 }
