@@ -891,9 +891,20 @@
                 </div>
             </div>
 
-            <!-- Submit Button -->
-            <button id="submitBtn" class="submit-button" disabled>
-                <span class="button-text">Submit Entry</span>
+            <!-- Parse Button (triggers OCR) -->
+            <button id="parseBtn" class="submit-button" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);"
+                disabled>
+                <span class="button-text">🔍 Parse Images</span>
+                <span class="button-loader hidden">
+                    <svg class="spinner" viewBox="0 0 50 50">
+                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" />
+                    </svg>
+                </span>
+            </button>
+
+            <!-- Submit Button (only shown after successful parse) -->
+            <button id="submitBtn" class="submit-button hidden" style="margin-top: 0.75rem;">
+                <span class="button-text">✅ Submit Entry</span>
                 <span class="button-loader hidden">
                     <svg class="spinner" viewBox="0 0 50 50">
                         <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" />
@@ -971,11 +982,12 @@
             location: null,
             submissionId: null,
             aiResult: null,
-            // OCR State
-            ocrResult: null,           // Client-side OCR result
-            ocrSource: null,           // 'client' or 'ai'
-            ocrInitialized: false,     // Whether OCR engine is ready
-            ocrInitializing: false     // Whether OCR is currently initializing
+            parsedResult: null,  // Stores OCR result between parse and submit
+            // OCR State (legacy, kept for compatibility)
+            ocrResult: null,
+            ocrSource: null,
+            ocrInitialized: false,
+            ocrInitializing: false
         };
 
         // DOM Elements
@@ -1005,6 +1017,8 @@
             extractedLocation: document.getElementById('extractedLocation'),
             vehicleConfidence: document.getElementById('vehicleConfidence'),
             invoiceConfidence: document.getElementById('invoiceConfidence'),
+            // Buttons
+            parseBtn: document.getElementById('parseBtn'),
             submitBtn: document.getElementById('submitBtn'),
             successMessage: document.getElementById('successMessage'),
             errorMessage: document.getElementById('errorMessage'),
@@ -1044,11 +1058,11 @@
             stepElement.classList.add('disabled');
         }
 
-        function setLoading(loading) {
-            const buttonText = elements.submitBtn.querySelector('.button-text');
-            const buttonLoader = elements.submitBtn.querySelector('.button-loader');
+        function setLoading(button, loading) {
+            const buttonText = button.querySelector('.button-text');
+            const buttonLoader = button.querySelector('.button-loader');
 
-            elements.submitBtn.disabled = loading;
+            button.disabled = loading;
 
             if (loading) {
                 hideElement(buttonText);
@@ -1152,17 +1166,10 @@
                 // Enable step 3
                 enableStep(elements.step3);
 
-                // Show 'Ready to Process' state
-                showElement(elements.submitBtn);
-                elements.submitBtn.disabled = false;
-
-                const btnText = elements.submitBtn.querySelector('.button-text');
-                if (btnText) {
-                    btnText.textContent = 'Process & Submit';
-                } else {
-                    // Fallback if structure is missing (shouldn't happen)
-                    elements.submitBtn.textContent = 'Process & Submit';
-                }
+                // Enable Parse button (not Submit - that comes after successful parse)
+                showElement(elements.parseBtn);
+                elements.parseBtn.disabled = false;
+                hideElement(elements.submitBtn);
 
             } catch (error) {
                 console.error('Invoice capture error:', error);
@@ -1380,14 +1387,14 @@
         }
 
         // ============================================================================
-        // GAS FAST PATH PARALLEL FLOW (No Local OCR)
+        // TWO-STEP FLOW: Parse → Submit
         // ============================================================================
 
         /**
-         * Main processing function - All OCR via GAS Fast Path
+         * STEP 1: Parse Images (OCR only, no upload)
          */
-        async function processAndSubmit() {
-            console.log('=== processAndSubmit STARTED (GAS Fast Path) ===');
+        async function handleParse() {
+            console.log('=== PARSE STARTED ===');
 
             if (!state.platePhoto || state.invoicePhotos.length === 0) {
                 alert('Please capture all required photos');
@@ -1395,11 +1402,11 @@
             }
 
             state.submissionId = state.submissionId || generateUUID();
-            disableStep(elements.step3);
 
             // Show processing UI
             showElement(elements.aiProcessingStatus);
-            setLoading(true);
+            setLoading(elements.parseBtn, true);
+            hideElement(elements.submitBtn);
 
             try {
                 // Build parallel OCR requests: 1 plate + N invoices
@@ -1435,8 +1442,9 @@
                     validationStatus: 'Success'
                 };
 
-                console.log('[FastOCR] Final combined result:', finalResult);
+                console.log('[Parse] Final combined result:', finalResult);
 
+                // Store in state for later submit
                 state.aiResult = {
                     vehicleNumber: finalResult.vehicleNumber,
                     invoiceNumbers: finalResult.invoiceNumbers,
@@ -1445,23 +1453,58 @@
                         invoices: finalResult.invoiceConfidence
                     }
                 };
+                state.parsedResult = finalResult;
 
-                // DISPLAY IMMEDIATELY
+                // DISPLAY RESULTS
                 hideElement(elements.aiProcessingStatus);
                 displayOCRResult(finalResult, 'gas-fast-path');
-                setLoading(false);
+                setLoading(elements.parseBtn, false);
 
-                // TRACK 3: Background Upload
-                uploadInBackground(finalResult);
+                // Hide Parse, Show Submit
+                hideElement(elements.parseBtn);
+                showElement(elements.submitBtn);
 
-                // Show Success Message
-                showSuccess();
+                console.log('[Parse] Complete. Ready for submit.');
 
             } catch (error) {
-                console.error('Processing failed:', error);
+                console.error('Parse failed:', error);
                 hideElement(elements.aiProcessingStatus);
-                setLoading(false);
-                showError('Failed to process. Please retry.');
+                setLoading(elements.parseBtn, false);
+
+                // Show error but allow retry
+                alert('Parsing failed. Please try again.');
+            }
+        }
+
+        /**
+         * STEP 2: Submit Entry (upload images + data to backend)
+         */
+        async function handleSubmit() {
+            console.log('=== SUBMIT STARTED ===');
+
+            if (!state.parsedResult) {
+                alert('Please parse images first');
+                return;
+            }
+
+            setLoading(elements.submitBtn, true);
+
+            try {
+                // Upload to backend
+                const success = await uploadToBackend(state.parsedResult);
+
+                setLoading(elements.submitBtn, false);
+
+                if (success) {
+                    showSuccess();
+                } else {
+                    showError('Upload failed. Please retry.');
+                }
+
+            } catch (error) {
+                console.error('Submit failed:', error);
+                setLoading(elements.submitBtn, false);
+                showError('Submission failed. Please retry.');
             }
         }
 
@@ -1484,10 +1527,11 @@
         }
 
         /**
-         * Track 3: Background Upload
+         * Upload images + extracted data to backend
+         * Returns true on success, false on failure
          */
-        async function uploadInBackground(extractedData) {
-            console.log('[Background] Starting upload...');
+        async function uploadToBackend(extractedData) {
+            console.log('[Upload] Starting...');
             try {
                 const payload = {
                     action: 'upload',
@@ -1502,7 +1546,7 @@
                             vehicle: extractedData.vehicleConfidence,
                             invoices: extractedData.invoiceConfidence
                         },
-                        ocrSource: 'hybrid'
+                        ocrSource: 'gas-fast-path'
                     },
                     submissionId: state.submissionId,
                     meta: {
@@ -1519,30 +1563,18 @@
 
                 const result = await response.json();
                 if (result.status === 200) {
-                    console.log('[Background] Upload successful');
+                    console.log('[Upload] Success');
                     storeSubmission(extractedData);
+                    return true;
                 } else {
-                    console.warn('[Background] Upload returned error:', result.message);
+                    console.warn('[Upload] Error:', result.message);
+                    return false;
                 }
             } catch (e) {
-                console.error('[Background] Upload failed', e);
+                console.error('[Upload] Failed', e);
+                return false;
             }
         }
-
-        // Form Submission Handler
-        async function handleSubmit(event) {
-            event.preventDefault();
-
-            // Validate
-            if (!state.platePhoto || state.invoicePhotos.length === 0) {
-                alert('Please capture all required photos');
-                return;
-            }
-
-            // Process with hybrid OCR + submit
-            await processAndSubmit();
-        }
-
 
 
         // Store submission
@@ -1590,6 +1622,7 @@
             state.invoicePhotosTimes = [];
             state.location = null;
             state.aiResult = null;
+            state.parsedResult = null;
             state.submissionId = null;
 
             // Reset thumbnails
@@ -1604,6 +1637,11 @@
             hideElement(elements.successMessage);
             hideElement(elements.errorMessage);
 
+            // Reset buttons
+            hideElement(elements.parseBtn);
+            hideElement(elements.submitBtn);
+            elements.parseBtn.disabled = true;
+
             // Reset steps
             enableStep(elements.step1);
             disableStep(elements.step2);
@@ -1611,16 +1649,16 @@
 
             // Reset location
             elements.extractedLocation.textContent = 'Acquiring...';
-
-            // Reset submit button
-            elements.submitBtn.disabled = true;
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initCamera();
 
-            // Submit button
+            // Parse button (OCR)
+            elements.parseBtn.addEventListener('click', handleParse);
+
+            // Submit button (Upload)
             elements.submitBtn.addEventListener('click', handleSubmit);
 
             // New entry button
