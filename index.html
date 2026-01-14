@@ -1536,7 +1536,15 @@
                         plate: state.platePhoto,
                         invoices: state.invoicePhotos
                     },
-                    extractedData: extractedData,
+                    extractedData: {
+                        vehicleNumber: extractedData.vehicleNumber,
+                        invoiceNumbers: extractedData.invoiceNumbers,
+                        confidence: {
+                            vehicle: extractedData.vehicleConfidence,
+                            invoices: extractedData.invoiceConfidence
+                        },
+                        ocrSource: 'hybrid'
+                    },
                     submissionId: state.submissionId,
                     meta: {
                         location: state.location,
@@ -1545,14 +1553,18 @@
                     }
                 };
 
-                await fetch(CONFIG.WEB_APP_URL, {
+                const response = await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Use no-cors for background upload if needed, but prefer standard if CORS allows
                     body: JSON.stringify(payload)
                 });
 
-                console.log('[Background] Upload request sent');
-                storeSubmission(extractedData);
+                const result = await response.json();
+                if (result.status === 200) {
+                    console.log('[Background] Upload successful');
+                    storeSubmission(extractedData);
+                } else {
+                    console.warn('[Background] Upload returned error:', result.message);
+                }
             } catch (e) {
                 console.error('[Background] Upload failed', e);
             }
