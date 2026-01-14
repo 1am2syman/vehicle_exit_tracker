@@ -380,179 +380,125 @@ function doPost(e) {
   }
 }
 
-// Process photos with OpenRouter/Gemini 2.5 Flash
+// Process photos with OpenRouter/Gemini 2.5 Flash in PARALLEL
 function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
   try {
-    // Extract vehicle number from plate photo
-    const vehicleResult = extractVehicleNumber(platePhotoBase64);
+    // 1. Prepare all requests
+    const requests = [];
     
-    // Extract invoice numbers from invoice photos
-    const invoiceResult = extractInvoiceNumbers(invoicePhotosBase64);
+    // Plate Request
+    const platePrompt = `
+      Analyze this image of a vehicle number plate (back of vehicle).
+      Task:
+      1. Identify and extract ONLY the vehicle number/registration number
+      2. This is the back of a vehicle, so the only detectable text will be the number plate
+      3. Return the vehicle number in uppercase letters and numbers only
+      4. Provide a confidence score (0-1) for your extraction
+      
+      Return JSON: {"number": "ABC-1234", "confidence": 0.95}
+      If not found: {"number": "", "confidence": 0}
+    `;
+    requests.push(buildOpenRouterRequest(platePhotoBase64, platePrompt));
+
+    // Invoice Requests
+    invoicePhotosBase64.forEach(photo => {
+      const invoicePrompt = `
+        Analyze this invoice document image.
+        Task:
+        1. Find and extract ALL invoice numbers (starting with "INV")
+        2. Extract the complete number including digits/letters
+        3. Provide a confidence score (0-1)
+        
+        Return JSON: {"numbers": ["INV-001"], "confidence": 0.92}
+        If not found: {"numbers": [], "confidence": 0}
+      `;
+      requests.push(buildOpenRouterRequest(photo, invoicePrompt));
+    });
+
+    // 2. Execute all requests in parallel
+    Logger.log(`Executing ${requests.length} AI requests in parallel...`);
+    const responses = UrlFetchApp.fetchAll(requests);
+    Logger.log('All parallel requests completed.');
+
+    // 3. Process Plate Result (First response)
+    const plateResponse = responses[0];
+    const plateResult = parseAIResponse(plateResponse.getContentText());
     
+    // 4. Process Invoice Results (Remaining responses)
+    const invoiceResponses = responses.slice(1);
+    const allInvoiceNumbers = [];
+    let totalInvoiceConfidence = 0;
+
+    invoiceResponses.forEach(res => {
+      const result = parseAIResponse(res.getContentText());
+      if (result.numbers) allInvoiceNumbers.push(...result.numbers);
+      if (result.confidence) totalInvoiceConfidence += result.confidence;
+    });
+
+    // Calculate aggregated invoice stats
+    const uniqueInvoiceNumbers = [...new Set(allInvoiceNumbers)];
+    const avgInvoiceConfidence = invoiceResponses.length > 0 
+      ? totalInvoiceConfidence / invoiceResponses.length 
+      : 0;
+
     return {
-      vehicleNumber: vehicleResult.number,
-      vehicleNumberConfidence: vehicleResult.confidence,
-      invoiceNumbers: invoiceResult.numbers,
-      invoiceNumbersConfidence: invoiceResult.confidence
+      vehicleNumber: plateResult.number,
+      vehicleNumberConfidence: plateResult.confidence,
+      invoiceNumbers: uniqueInvoiceNumbers,
+      invoiceNumbersConfidence: avgInvoiceConfidence
     };
+
   } catch (error) {
     console.error('AI Processing error:', error);
-    throw new Error('Failed to process photos with AI');
+    throw new Error('Failed to process photos with AI: ' + error.message);
   }
 }
 
-// Extract vehicle number from plate photo
-function extractVehicleNumber(photoBase64) {
-  const prompt = `
-    Analyze this image of a vehicle number plate (back of vehicle).
-    
-    Task:
-    1. Identify and extract ONLY the vehicle number/registration number
-    2. This is the back of a vehicle, so the only detectable text will be the number plate
-    3. Ignore any other text, logos, or markings
-    4. Return the vehicle number in uppercase letters and numbers only
-    5. Provide a confidence score (0-1) for your extraction
-    
-    Expected format:
-    - Vehicle numbers typically follow patterns like: ABC-1234, AB1234, 1234-ABC, etc.
-    - Look for alphanumeric characters with possible hyphens or spaces
-    
-    Return your response in this exact JSON format:
-    {
-      "number": "ABC-1234",
-      "confidence": 0.95
-    }
-    
-    If you cannot confidently identify a vehicle number, return:
-    {
-      "number": "",
-      "confidence": 0
-    }
-  `;
-
-  const response = callOpenRouterAPI(photoBase64, prompt);
-  return parseAIResponse(response);
-}
-
-// Extract invoice numbers from invoice photos
-function extractInvoiceNumbers(invoicePhotosBase64) {
-  const allInvoiceNumbers = [];
-  let totalConfidence = 0;
+// Build request object for UrlFetchApp
+function buildOpenRouterRequest(photoBase64, prompt) {
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
   
-  for (const photoBase64 of invoicePhotosBase64) {
-    const prompt = `
-      Analyze this invoice document image.
-      
-      Task:
-      1. Find and extract ALL invoice numbers from this document
-      2. Invoice numbers MUST start with "INV" (case-insensitive)
-      3. Extract the complete invoice number including any digits/letters after "INV"
-      4. Provide a confidence score (0-1) for each extraction
-      
-      Expected format:
-      - Invoice numbers typically follow patterns like: INV-001, INV001, INV-2024-001, etc.
-      - Look for text starting with "INV" followed by numbers and possibly hyphens
-      
-      Return your response in this exact JSON format:
+  const payload = {
+    model: CONFIG.OPENROUTER_MODEL,
+    messages: [
       {
-        "numbers": ["INV-001", "INV-002"],
-        "confidence": 0.92
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: photoBase64 } }
+        ]
       }
-      
-      If you cannot find any invoice numbers starting with "INV", return:
-      {
-        "numbers": [],
-        "confidence": 0
-      }
-    `;
-
-    const response = callOpenRouterAPI(photoBase64, prompt);
-    const result = parseAIResponse(response);
-    
-    allInvoiceNumbers.push(...result.numbers);
-    totalConfidence += result.confidence;
-  }
-  
-  // Remove duplicates
-  const uniqueInvoiceNumbers = [...new Set(allInvoiceNumbers)];
-  
-  // Calculate average confidence
-  const avgConfidence = invoicePhotosBase64.length > 0 
-    ? totalConfidence / invoicePhotosBase64.length 
-    : 0;
+    ],
+    max_tokens: 500,
+    temperature: 0.1,
+    response_format: { type: 'json_object' }
+  };
   
   return {
-    numbers: uniqueInvoiceNumbers,
-    confidence: avgConfidence
+    url: url,
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${CONFIG.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://vehicle-exit-tracker.netlify.app',
+      'X-Title': 'Vehicle Exit Tracker'
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
   };
 }
 
-// Call OpenRouter API
-function callOpenRouterAPI(photoBase64, prompt) {
-  try {
-    const url = 'https://openrouter.ai/api/v1/chat/completions';
-    
-    const payload = {
-      model: CONFIG.OPENROUTER_MODEL,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: photoBase64
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.1, // Low temperature for consistent extraction
-      response_format: { type: 'json_object' } // Force JSON response
-    };
-    
-    const options = {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CONFIG.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://your-website.com', // Required by OpenRouter
-        'X-Title': 'Vehicle Exit Tracker' // Required by OpenRouter
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true,
-      timeout: CONFIG.API_TIMEOUT
-    };
-    
-    const response = UrlFetchApp.fetch(url, options);
-    const responseCode = response.getResponseCode();
-    const responseBody = response.getContentText();
-    
-    if (responseCode !== 200) {
-      console.error('OpenRouter API Error:', responseCode, responseBody);
-      throw new Error(`OpenRouter API returned status ${responseCode}`);
-    }
-    
-    const jsonResponse = JSON.parse(responseBody);
-    const content = jsonResponse.choices[0].message.content;
-    
-    return content;
-  } catch (error) {
-    console.error('OpenRouter API call error:', error);
-    throw new Error('Failed to call OpenRouter API');
-  }
-}
-
 // Parse AI response
-function parseAIResponse(response) {
+function parseAIResponse(responseString) {
   try {
-    const parsed = JSON.parse(response);
-    return parsed;
+    const jsonResponse = JSON.parse(responseString);
+    // If it's the raw OpenRouter response, extract content
+    if (jsonResponse.choices && jsonResponse.choices[0]) {
+      const content = jsonResponse.choices[0].message.content;
+      return JSON.parse(content);
+    }
+    // Otherwise assume it's already the inner content (legacy check)
+    return jsonResponse;
   } catch (error) {
     console.error('Failed to parse AI response:', error);
     return {
