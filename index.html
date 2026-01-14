@@ -947,7 +947,7 @@
     <script>
         // Configuration
         const CONFIG = {
-            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbz0fiesUwdaOLHXLHILjfP_-cew9Xsw-heeXSvRfWtcC4-U-87g54BZyx-gCOjRM7yg/exec', // Replace with actual URL
+            WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbzo5lduwYaYepwId81kikpTNgeEG4YpW57DhmDEiblnPeIROLSXYvMcdZ-DEPiEH5xckA/exec', // Replace with actual URL
             MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
             MAX_PHOTO_DIMENSION: 800,
             MIN_INVOICE_DIMENSION: 600,
@@ -1152,9 +1152,6 @@
                 // Enable step 3
                 enableStep(elements.step3);
 
-                // Auto-process with AI - DISABLED by request
-                // processWithAI();
-
                 // Show 'Ready to Process' state
                 showElement(elements.submitBtn);
                 elements.submitBtn.disabled = false;
@@ -1350,325 +1347,207 @@
         }
 
         // ============================================================================
-        // ON-DEVICE OCR PROCESSING
+        // ON-DEVICE OCR PROCESSING (Invoices Only)
         // ============================================================================
 
         /**
-         * Process images with on-device OCR (Tesseract.js)
-         * Returns: { vehicleNumber, vehicleConfidence, invoiceNumbers, invoiceConfidence, ... }
+         * Process invoices with on-device OCR (Tesseract.js)
+         * Returns: { invoiceNumbers, invoiceConfidence }
          */
         async function processWithLocalOCR() {
-            console.log('[OCR] Starting on-device OCR processing...');
-
-            // Show local OCR status
+            console.log('[OCR] Starting on-device Invoice OCR...');
             showElement(elements.localOcrStatus);
-            hideElement(elements.aiProcessingStatus);
-            hideElement(elements.extractedData);
 
             try {
-                // Run OCR on all images
-                const result = await ocrEngine.processAll(state.platePhoto, state.invoicePhotos);
+                // Run OCR on invoices only
+                const invoiceResults = [];
+                for (const photo of state.invoicePhotos) {
+                    const res = await ocrEngine.recognizeInvoice(photo);
+                    invoiceResults.push(res);
+                }
 
-                console.log('[OCR] On-device result:', result);
+                // Aggregate results
+                const allNumbers = new Set();
+                let totalConf = 0;
+                invoiceResults.forEach(r => {
+                    if (r.invoiceNumbers) r.invoiceNumbers.forEach(n => allNumbers.add(n));
+                    totalConf += r.confidence;
+                });
 
+                const avgConf = invoiceResults.length > 0 ? totalConf / invoiceResults.length : 0;
+
+                console.log('[OCR] Invoice result:', Array.from(allNumbers));
                 hideElement(elements.localOcrStatus);
 
-                return result;
+                return {
+                    invoiceNumbers: Array.from(allNumbers),
+                    invoiceConfidence: avgConf
+                };
             } catch (error) {
-                console.error('[OCR] On-device OCR failed:', error);
+                console.error('[OCR] Invoice OCR failed:', error);
                 hideElement(elements.localOcrStatus);
-                throw error;
+                return { invoiceNumbers: [], invoiceConfidence: 0 };
             }
         }
 
         // ============================================================================
-        // AI FALLBACK PROCESSING (Backend)
+        // FAST PATH AI PROCESSING (Plate Only)
         // ============================================================================
 
         /**
-         * Process with AI (GPT-4o via OpenRouter) as fallback
-         * Used when on-device OCR confidence is too low
+         * Process Plate with GAS Fast Path (OpenRouter)
+         * Returns: { vehicleNumber, vehicleConfidence }
          */
-        async function processWithAI() {
-            console.log('[AI] Starting AI fallback processing...');
-
+        async function fetchFastOCR() {
+            console.log('[FastOCR] Starting Plate OCR...');
             showElement(elements.aiProcessingStatus);
 
             try {
-                // Submit data for AI processing
-                const formData = new URLSearchParams();
-                formData.append('platePhotoBase64', state.platePhoto);
-                formData.append('invoicePhotosBase64', JSON.stringify(state.invoicePhotos));
-                formData.append('location', state.location || '');
-                formData.append('deviceInfo', getDeviceInfo());
-                formData.append('captureTime', state.platePhotoTime || '');
-                formData.append('submissionId', state.submissionId);
+                const payload = {
+                    action: 'fastOCR',
+                    image: state.platePhoto,
+                    type: 'plate'
+                };
 
-                // Also send client OCR result for comparison/logging
-                if (state.ocrResult) {
-                    formData.append('clientOCR', JSON.stringify(state.ocrResult));
-                }
-
-                await fetch(CONFIG.WEB_APP_URL, {
+                // Use POST with JSON body
+                const response = await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData.toString()
+                    body: JSON.stringify(payload)
                 });
 
-                // Poll for results
-                const MAX_RETRIES = 10;
-                const RETRY_DELAY_MS = 4000;
-                let responseData = null;
+                const json = await response.json();
 
-                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-                    console.log(`[AI] Polling attempt ${attempt}/${MAX_RETRIES}...`);
+                if (json.status !== 200) throw new Error(json.message);
 
-                    const waitTime = attempt === 1 ? 5000 : RETRY_DELAY_MS;
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-
-                    try {
-                        const callbackName = 'jsonpCallback_' + state.submissionId.replace(/-/g, '_') + '_' + attempt;
-                        const getResultUrl = CONFIG.WEB_APP_URL + '?submissionId=' + state.submissionId + '&callback=' + callbackName;
-
-                        const pollResult = await new Promise((resolve, reject) => {
-                            const timeoutId = setTimeout(() => {
-                                delete window[callbackName];
-                                if (script.parentNode) script.parentNode.removeChild(script);
-                                reject(new Error('JSONP request timed out'));
-                            }, 10000);
-
-                            window[callbackName] = function (data) {
-                                clearTimeout(timeoutId);
-                                delete window[callbackName];
-                                if (script.parentNode) script.parentNode.removeChild(script);
-                                resolve(data);
-                            };
-
-                            const script = document.createElement('script');
-                            script.src = getResultUrl;
-                            script.onerror = function () {
-                                clearTimeout(timeoutId);
-                                delete window[callbackName];
-                                if (script.parentNode) script.parentNode.removeChild(script);
-                                reject(new Error('Failed to load JSONP script'));
-                            };
-                            document.head.appendChild(script);
-                        });
-
-                        if (pollResult.status === 404) {
-                            continue;
-                        }
-
-                        if (pollResult.vehicleNumber !== undefined || pollResult.invoiceNumbers !== undefined) {
-                            responseData = pollResult;
-                            break;
-                        }
-                    } catch (error) {
-                        console.error(`[AI] Attempt ${attempt} failed:`, error.message);
-                    }
-                }
-
+                console.log('[FastOCR] Result:', json.data);
                 hideElement(elements.aiProcessingStatus);
-
-                if (!responseData) {
-                    throw new Error('Failed to retrieve AI results');
-                }
 
                 return {
-                    vehicleNumber: responseData.vehicleNumber,
-                    vehicleConfidence: responseData.confidence?.vehicle || 0,
-                    invoiceNumbers: responseData.invoiceNumbers || [],
-                    invoiceConfidence: responseData.confidence?.invoices || 0,
-                    ocrEngine: 'openai/gpt-4o',
-                    needsAIFallback: false
+                    vehicleNumber: json.data.vehicleNumber,
+                    vehicleConfidence: json.data.confidence
                 };
+
             } catch (error) {
+                console.error('[FastOCR] Failed:', error);
                 hideElement(elements.aiProcessingStatus);
-                throw error;
+                return { vehicleNumber: '', vehicleConfidence: 0 };
             }
         }
 
         // ============================================================================
-        // HYBRID PROCESSING FLOW
+        // HYBRID PARALLEL FLOW
         // ============================================================================
 
         /**
-         * Main processing function - orchestrates OCR + AI fallback + submission
+         * Main processing function - Parallel Execution
          */
         async function processAndSubmit() {
-            console.log('=== processAndSubmit STARTED ===');
+            console.log('=== processAndSubmit STARTED (Parallel) ===');
 
             if (!state.platePhoto || state.invoicePhotos.length === 0) {
-                console.log('ERROR: Missing required photos');
+                alert('Please capture all required photos');
                 return;
             }
 
             state.submissionId = state.submissionId || generateUUID();
             disableStep(elements.step3);
 
+            // Show processing UI
+            showElement(elements.aiProcessingStatus);
+            showElement(elements.localOcrStatus);
+            setLoading(true);
+
             try {
-                let ocrResult = null;
-                let usedAIFallback = false;
+                // TRACK 1 & 2: Parallel Execution
+                const [plateResult, invoiceResult] = await Promise.all([
+                    fetchFastOCR(),           // Track 1: GAS Fast Path (Plate)
+                    processWithLocalOCR()     // Track 2: Local Tesseract (Invoice)
+                ]);
 
-                // Step 1: Try on-device OCR first (if initialized)
-                if (state.ocrInitialized && ocrEngine.isReady()) {
-                    try {
-                        ocrResult = await processWithLocalOCR();
-                        state.ocrResult = ocrResult;
-                        state.ocrSource = 'client';
+                // Combine results
+                const finalResult = {
+                    vehicleNumber: plateResult.vehicleNumber,
+                    vehicleConfidence: plateResult.vehicleConfidence,
+                    invoiceNumbers: invoiceResult.invoiceNumbers,
+                    invoiceConfidence: invoiceResult.invoiceConfidence,
+                    validationStatus: 'Success'
+                };
 
-                        // Check if confidence is high enough
-                        const needsFallback = CONFIG.ENABLE_AI_FALLBACK && (
-                            ocrResult.vehicleConfidence < CONFIG.OCR_CONFIDENCE_THRESHOLD ||
-                            ocrResult.invoiceConfidence < CONFIG.OCR_CONFIDENCE_THRESHOLD
-                        );
-
-                        if (needsFallback) {
-                            console.log('[App] Low confidence, triggering AI fallback...');
-                            console.log(`[App] Vehicle: ${ocrResult.vehicleConfidence}, Invoice: ${ocrResult.invoiceConfidence}`);
-
-                            // Show current (low-confidence) result while AI processes
-                            displayOCRResult(ocrResult, 'client');
-
-                            // Run AI fallback
-                            const aiResult = await processWithAI();
-                            ocrResult = aiResult;
-                            state.ocrSource = 'ai';
-                            usedAIFallback = true;
-                        }
-                    } catch (ocrError) {
-                        console.error('[App] Local OCR failed, falling back to AI:', ocrError);
-                        ocrResult = await processWithAI();
-                        state.ocrSource = 'ai';
-                        usedAIFallback = true;
-                    }
-                } else {
-                    // OCR not initialized, use AI directly
-                    console.log('[App] OCR not initialized, using AI-only mode');
-                    ocrResult = await processWithAI();
-                    state.ocrSource = 'ai';
-                    usedAIFallback = true;
-                }
-
-                // Step 2: Display final result
                 state.aiResult = {
-                    vehicleNumber: ocrResult.vehicleNumber,
-                    invoiceNumbers: ocrResult.invoiceNumbers,
+                    vehicleNumber: finalResult.vehicleNumber,
+                    invoiceNumbers: finalResult.invoiceNumbers,
                     confidence: {
-                        vehicle: ocrResult.vehicleConfidence,
-                        invoices: ocrResult.invoiceConfidence
+                        vehicle: finalResult.vehicleConfidence,
+                        invoices: finalResult.invoiceConfidence
                     }
                 };
 
-                displayOCRResult(ocrResult, usedAIFallback ? 'ai' : 'client');
+                // DISPLAY IMMEDIATELY
+                displayOCRResult(finalResult, 'hybrid');
+                setLoading(false);
 
-                // Step 3: Submit to backend with images (parallel with display)
-                // This uploads images and stores the final record
-                await submitToBackend(ocrResult, usedAIFallback);
+                // TRACK 3: Background Upload (Fire and forget, but we handle success/fail silently)
+                uploadInBackground(finalResult);
 
-                console.log('=== processAndSubmit COMPLETED ===');
+                // Show Success Message
+                showSuccess();
 
             } catch (error) {
-                console.error('[App] Processing failed:', error);
-                showError('Failed to process photos. Please try again.');
+                console.error('Processing failed:', error);
+                setLoading(false);
+                showError('Failed to process. Please retry.');
             }
         }
 
-        /**
-         * Display OCR results in the UI
-         */
         function displayOCRResult(result, source) {
-            // Show extracted data section
             showElement(elements.extractedData);
             hideElement(elements.localOcrStatus);
             hideElement(elements.aiProcessingStatus);
 
-            // Update vehicle number
-            elements.extractedVehicleNumber.textContent = result.vehicleNumber || 'Not detected';
+            elements.extractedVehicleNumber.textContent = result.vehicleNumber || 'Not found';
+            elements.extractedInvoiceNumbers.textContent = (result.invoiceNumbers || []).join(', ') || 'Not found';
 
-            // Update invoice numbers
-            const invoiceText = result.invoiceNumbers && result.invoiceNumbers.length > 0
-                ? result.invoiceNumbers.join(', ')
-                : 'Not detected';
-            elements.extractedInvoiceNumbers.textContent = invoiceText;
-
-            // Update confidence badges
             const vehicleConf = Math.round((result.vehicleConfidence || 0) * 100);
             const invoiceConf = Math.round((result.invoiceConfidence || 0) * 100);
 
             elements.vehicleConfidence.textContent = vehicleConf + '%';
             elements.invoiceConfidence.textContent = invoiceConf + '%';
 
-            elements.vehicleConfidence.className = 'confidence-badge ' +
-                (vehicleConf >= 80 ? 'high' : vehicleConf >= 50 ? '' : 'low');
-            elements.invoiceConfidence.className = 'confidence-badge ' +
-                (invoiceConf >= 80 ? 'high' : invoiceConf >= 50 ? '' : 'low');
-
-            // Update OCR source badge
-            if (source === 'client') {
-                elements.ocrSourceBadge.className = 'ocr-source-badge';
-                elements.ocrSourceBadge.innerHTML = '<span class="ocr-source-icon">📱</span><span class="ocr-source-text">Processed on device</span>';
-            } else {
-                elements.ocrSourceBadge.className = 'ocr-source-badge ai-fallback';
-                elements.ocrSourceBadge.innerHTML = '<span class="ocr-source-icon">☁️</span><span class="ocr-source-text">Verified by AI</span>';
-            }
-
-            // Enable submit button (if not already processing)
-            elements.submitBtn.disabled = false;
+            elements.vehicleConfidence.className = 'confidence-badge ' + (vehicleConf >= 80 ? 'high' : 'low');
+            elements.invoiceConfidence.className = 'confidence-badge ' + (invoiceConf >= 80 ? 'high' : 'low');
         }
 
         /**
-         * Submit final data to backend (images + OCR results)
+         * Track 3: Background Upload
          */
-        async function submitToBackend(ocrResult, usedAIFallback) {
-            console.log('[Submit] Sending final submission to backend...');
-
+        async function uploadInBackground(extractedData) {
+            console.log('[Background] Starting upload...');
             try {
-                setLoading(true);
-
-                // Prepare submission data
-                const formData = new URLSearchParams();
-                formData.append('platePhotoBase64', state.platePhoto);
-                formData.append('invoicePhotosBase64', JSON.stringify(state.invoicePhotos));
-                formData.append('location', state.location || '');
-                formData.append('deviceInfo', getDeviceInfo());
-                formData.append('captureTime', state.platePhotoTime || '');
-                formData.append('submissionId', state.submissionId);
-
-                // Include client OCR data for backend to use/log
-                formData.append('clientOCR', JSON.stringify({
-                    vehicleNumber: ocrResult.vehicleNumber,
-                    vehicleConfidence: ocrResult.vehicleConfidence,
-                    invoiceNumbers: ocrResult.invoiceNumbers,
-                    invoiceConfidence: ocrResult.invoiceConfidence,
-                    ocrEngine: usedAIFallback ? 'openai/gpt-4o' : 'tesseract-5.0.0',
-                    usedAIFallback: usedAIFallback
-                }));
+                const payload = {
+                    action: 'upload',
+                    images: {
+                        plate: state.platePhoto,
+                        invoices: state.invoicePhotos
+                    },
+                    extractedData: extractedData,
+                    submissionId: state.submissionId,
+                    meta: {
+                        location: state.location,
+                        deviceInfo: getDeviceInfo(),
+                        captureTime: state.platePhotoTime
+                    }
+                };
 
                 await fetch(CONFIG.WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData.toString()
+                    mode: 'no-cors', // Use no-cors for background upload if needed, but prefer standard if CORS allows
+                    body: JSON.stringify(payload)
                 });
 
-                // Store locally
-                storeSubmission({
-                    submissionId: state.submissionId,
-                    vehicleNumber: ocrResult.vehicleNumber,
-                    invoiceNumbers: ocrResult.invoiceNumbers,
-                    location: state.location,
-                    ocrSource: usedAIFallback ? 'ai' : 'client'
-                });
-
-                setLoading(false);
-                showSuccess();
-
-            } catch (error) {
-                console.error('[Submit] Backend submission failed:', error);
-                setLoading(false);
-                showError('Failed to submit entry. Please try again.');
+                console.log('[Background] Upload request sent');
+                storeSubmission(extractedData);
+            } catch (e) {
+                console.error('[Background] Upload failed', e);
             }
         }
 
