@@ -106,25 +106,23 @@ function handleFastOCR(data) {
   
   if (ocrType === 'invoice') {
     prompt = `
-      You are an expert Invoice/Receipt OCR system for Bangladesh.
-      YOUR GOAL: Extract ALL invoice numbers, bill numbers, and reference numbers from this document.
-      
-      === LOOK FOR THESE PATTERNS ===
-      - Invoice No / Invoice Number / INV-XXXX
-      - Bill No / Bill Number
-      - Ref No / Reference Number
-      - Receipt No
-      - Order No / Order ID
-      - BIN (Business Identification Number)
-      - MUSHAK number
-      - Any alphanumeric code that looks like an identifier (e.g., DBBA/0325/3219)
-      
-      === BENGALI NUMERALS ===
-      Convert if found: ০=0, ১=1, ২=2, ৩=3, ৪=4, ৫=5, ৬=6, ৭=7, ৮=8, ৯=9
-      
-      === FINAL OUTPUT ===
-      Return JSON: {"numbers": ["INV-12345", "REF-ABC-789"], "confidence": 0.95}
-      If no numbers found: {"numbers": [], "confidence": 0}
+        Analyze this invoice document image.
+        
+        YOUR GOAL: Find the Invoice Number by any means necessary.
+        
+        The invoice number usually appears near the top right or within header boxes.
+        It is often labeled as: "Invoice No", "INV No", "Ref No", "Bill No", or just "INV".
+        
+        The value typically starts with "INV" but might be complex (e.g. "INV-DBBA/0325/3219").
+        
+        === INSTRUCTIONS ===
+        1. Scan the ENTIRE document text.
+        2. Look specifically for the string starting with "INV" or "inv".
+        3. If you find a label "Invoice No" but the value DOES NOT start with INV, return it anyway.
+        4. Extract the FULL string (including slashes, dashes, digits).
+        
+        Return JSON: {"numbers": ["INV-DBBA/0325/3219", "272025"], "confidence": 0.95}
+        If ABSOLUTELY nothing is found: {"numbers": [], "confidence": 0}
     `;
   } else {
     // Default: Plate OCR
@@ -150,26 +148,60 @@ function handleFastOCR(data) {
     `;
   }
 
-  // Call OpenRouter
-  const response = callOpenRouter(data.image, prompt);
-  const result = parseAIResponse(response.getContentText());
-  
-  const processingTime = new Date() - startTime;
-  Logger.log(`FastOCR (${ocrType}) Completed in ${processingTime}ms`);
+  // Call OpenRouter with error handling
+  try {
+    const response = callOpenRouter(data.image, prompt);
+    const responseText = response.getContentText();
+    const responseCode = response.getResponseCode();
+    
+    // Check for HTTP errors
+    if (responseCode !== 200) {
+      Logger.log(`OpenRouter API error: HTTP ${responseCode} - ${responseText}`);
+      return createJSONResponse(502, `OpenRouter API error: ${responseCode}`, {
+        invoiceNumbers: [],
+        vehicleNumber: '',
+        confidence: 0,
+        error: true
+      });
+    }
+    
+    const result = parseAIResponse(responseText);
+    
+    const processingTime = new Date() - startTime;
+    Logger.log(`FastOCR (${ocrType}) Completed in ${processingTime}ms`);
 
-  // Return type-specific response
-  if (ocrType === 'invoice') {
-    return createJSONResponse(200, 'Invoice OCR Successful', {
-      invoiceNumbers: result.numbers || [],
-      confidence: result.confidence || 0,
-      processingTime: processingTime
-    });
-  } else {
-    return createJSONResponse(200, 'Plate OCR Successful', {
-      vehicleNumber: result.number || '',
-      confidence: result.confidence || 0,
-      processingTime: processingTime
-    });
+    // Return type-specific response
+    if (ocrType === 'invoice') {
+      return createJSONResponse(200, 'Invoice OCR Successful', {
+        invoiceNumbers: result.numbers || [],
+        confidence: result.confidence || 0,
+        processingTime: processingTime
+      });
+    } else {
+      return createJSONResponse(200, 'Plate OCR Successful', {
+        vehicleNumber: result.number || '',
+        confidence: result.confidence || 0,
+        processingTime: processingTime
+      });
+    }
+    
+  } catch (error) {
+    Logger.log(`FastOCR ERROR (${ocrType}): ${error.toString()}`);
+    
+    // Return error response so frontend doesn't hang
+    if (ocrType === 'invoice') {
+      return createJSONResponse(500, `Invoice OCR failed: ${error.message}`, {
+        invoiceNumbers: [],
+        confidence: 0,
+        error: true
+      });
+    } else {
+      return createJSONResponse(500, `Plate OCR failed: ${error.message}`, {
+        vehicleNumber: '',
+        confidence: 0,
+        error: true
+      });
+    }
   }
 }
 
