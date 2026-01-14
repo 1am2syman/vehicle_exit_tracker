@@ -1477,7 +1477,7 @@
         }
 
         /**
-         * STEP 2: Submit Entry (upload images + data to backend)
+         * STEP 2: Submit Entry (optimistic UI - show success immediately)
          */
         async function handleSubmit() {
             console.log('=== SUBMIT STARTED ===');
@@ -1487,25 +1487,21 @@
                 return;
             }
 
-            setLoading(elements.submitBtn, true);
+            // OPTIMISTIC UI: Show success immediately
+            showSuccess();
+            console.log('[Submit] Success shown (optimistic)');
 
-            try {
-                // Upload to backend
-                const success = await uploadToBackend(state.parsedResult);
-
-                setLoading(elements.submitBtn, false);
-
+            // BACKGROUND: Upload data (fire and forget)
+            uploadToBackend(state.parsedResult).then(success => {
                 if (success) {
-                    showSuccess();
+                    console.log('[Submit] Background upload confirmed');
                 } else {
-                    showError('Upload failed. Please retry.');
+                    console.warn('[Submit] Background upload failed - data saved locally');
+                    // Data is already saved locally via storeSubmission()
                 }
-
-            } catch (error) {
-                console.error('Submit failed:', error);
-                setLoading(elements.submitBtn, false);
-                showError('Submission failed. Please retry.');
-            }
+            }).catch(error => {
+                console.error('[Submit] Background upload error:', error);
+            });
         }
 
         function displayOCRResult(result, source) {
