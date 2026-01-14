@@ -1155,7 +1155,14 @@
                 // Show 'Ready to Process' state
                 showElement(elements.submitBtn);
                 elements.submitBtn.disabled = false;
-                elements.submitBtn.textContent = 'Process & Submit';
+
+                const btnText = elements.submitBtn.querySelector('.button-text');
+                if (btnText) {
+                    btnText.textContent = 'Process & Submit';
+                } else {
+                    // Fallback if structure is missing (shouldn't happen)
+                    elements.submitBtn.textContent = 'Process & Submit';
+                }
 
             } catch (error) {
                 console.error('Invoice capture error:', error);
