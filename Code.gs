@@ -389,13 +389,14 @@ function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
     // Plate Request
     const platePrompt = `
       Analyze this image of a vehicle number plate (back of vehicle).
-      Task:
-      1. Identify and extract ONLY the vehicle number/registration number
-      2. This is the back of a vehicle, so the only detectable text will be the number plate
-      3. Return the vehicle number in uppercase letters and numbers only
-      4. Provide a confidence score (0-1) for your extraction
       
-      Return JSON: {"number": "ABC-1234", "confidence": 0.95}
+      Task:
+      1. Identify and extract the vehicle number/registration number.
+      2. The number plate may use **Bengali script** (e.g., 'ঢাকা মেট্রো-গ ৩১-১৯৫৭') or English.
+      3. If in Bengali, Transliterate to English if standard, otherwise return the Bengali text EXACTLY as seen.
+      4. Convert Bengali numerals to English numerals (e.g., '৩১-১৯৫৭' -> '31-1957').
+      
+      Return JSON: {"number": "Dhaka Metro-Ga 31-1957", "confidence": 0.95}
       If not found: {"number": "", "confidence": 0}
     `;
     requests.push(buildOpenRouterRequest(platePhotoBase64, platePrompt));
@@ -404,12 +405,14 @@ function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
     invoicePhotosBase64.forEach(photo => {
       const invoicePrompt = `
         Analyze this invoice document image.
-        Task:
-        1. Find and extract ALL invoice numbers (starting with "INV")
-        2. Extract the complete number including digits/letters
-        3. Provide a confidence score (0-1)
         
-        Return JSON: {"numbers": ["INV-001"], "confidence": 0.92}
+        Task:
+        1. Find and extract the Invoice Number.
+        2. Look for labels like "Invoice No", "INV", "Bill No", "Chalan No", "Order No", or "Reference".
+        3. The Value usually looks like "INV-DBBA/0325/3219" or similar alphanumeric strings.
+        4. Return ALL detected invoice numbers.
+        
+        Return JSON: {"numbers": ["INV-DBBA/0325/3219"], "confidence": 0.92}
         If not found: {"numbers": [], "confidence": 0}
       `;
       requests.push(buildOpenRouterRequest(photo, invoicePrompt));
@@ -458,6 +461,11 @@ function processPhotosWithAI(platePhotoBase64, invoicePhotosBase64) {
 function buildOpenRouterRequest(photoBase64, prompt) {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   
+  // Debug Log: Check if API Key is actually loaded
+  const obscuredKey = CONFIG.OPENROUTER_API_KEY ? 
+    (CONFIG.OPENROUTER_API_KEY.substring(0, 8) + '...') : 'MISSING/UNDEFINED';
+  Logger.log('Preparing OpenRouter Request. API Key Status: ' + obscuredKey);
+
   const payload = {
     model: CONFIG.OPENROUTER_MODEL,
     messages: [
@@ -625,8 +633,10 @@ function doGet(e) {
       // If JSONP callback is provided, wrap response in callback function
       if (callback) {
         Logger.log('Returning JSONP response');
+        // Parse the stored string to ensure we're wrapping an object, not a double-string
+        let jsonData = JSON.parse(resultData);
         return ContentService
-          .createTextOutput(callback + '(' + resultData + ')')
+          .createTextOutput(callback + '(' + JSON.stringify(jsonData) + ')')
           .setMimeType(ContentService.MimeType.JAVASCRIPT);
       }
       

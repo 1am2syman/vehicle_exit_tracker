@@ -1297,7 +1297,7 @@
                 // Show extracted data
                 showElement(elements.extractedData);
                 elements.extractedVehicleNumber.textContent = state.aiResult.vehicleNumber || 'Not detected';
-                elements.extractedInvoiceNumbers.textContent = state.aiResult.invoiceNumbers?.join(', ') || 'Not detected';
+                elements.extractedInvoiceNumbers.textContent = (state.aiResult.invoiceNumbers && state.aiResult.invoiceNumbers.length > 0) ? state.aiResult.invoiceNumbers.join(', ') : 'Not detected';
 
                 // Get confidence values (backend returns 0-1, convert to percentage)
                 const vehicleConf = Math.round((state.aiResult.confidence?.vehicle || 0) * 100);
