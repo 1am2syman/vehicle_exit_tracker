@@ -397,8 +397,40 @@
             box-shadow: var(--shadow-lg);
         }
 
-        .submit-button:active:not(:disabled) {
-            transform: translateY(0);
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            width: 100%;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .secondary-button {
+            padding: 1rem;
+            background-color: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .primary-button {
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow);
         }
 
         .submit-button:disabled {
@@ -786,7 +818,10 @@
                     <span id="submittedInvoiceNumbers" class="data-row-value">--</span>
                 </div>
             </div>
-            <button id="newEntryButton" class="new-entry-button">Record Another Exit</button>
+            <div class="action-buttons">
+                <button id="exitButton" class="exit-button secondary-button">Exit</button>
+                <button id="newEntryButton" class="new-entry-button primary-button">Record Another Exit</button>
+            </div>
         </div>
 
         <!-- Error Message -->
@@ -1426,6 +1461,15 @@
 
             // New entry button
             elements.newEntryButton.addEventListener('click', resetForm);
+
+            // Exit button
+            document.getElementById('exitButton').addEventListener('click', () => {
+                if (confirm('Are you sure you want to exit?')) {
+                    window.close();
+                    // Fallback if window.close() is blocked
+                    window.location.href = 'about:blank';
+                }
+            });
 
             // Retry button
             elements.retryButton.addEventListener('click', () => {
