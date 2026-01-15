@@ -164,6 +164,22 @@
             box-shadow: var(--shadow-lg);
         }
 
+        /* Camera Icon Animation States */
+        .camera-icon-wrapper.fade-out {
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+            transition: opacity 300ms ease-out, transform 300ms ease-out;
+        }
+
+        .camera-zone.photo-captured .camera-icon-wrapper {
+            display: none;
+        }
+
+        .camera-zone.photo-captured .camera-instruction {
+            display: none;
+        }
+
         .camera-icon {
             width: 50px;
             height: 50px;
@@ -379,12 +395,12 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.375rem 0.75rem;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(37, 99, 235, 0.1));
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.3);
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
-            color: var(--success);
+            color: #6366f1;
             margin-bottom: 1rem;
         }
 
@@ -872,8 +888,8 @@
             <!-- Extracted Data Preview -->
             <div id="extractedData" class="extracted-data hidden">
                 <div class="ocr-source-badge" id="ocrSourceBadge">
-                    <span class="ocr-source-icon">📱</span>
-                    <span class="ocr-source-text">Processed on device</span>
+                    <span class="ocr-source-icon">🤖</span>
+                    <span class="ocr-source-text">Processed via AI</span>
                 </div>
                 <div class="data-item">
                     <span class="data-label">Vehicle Number:</span>
@@ -935,7 +951,7 @@
             </div>
             <div class="action-buttons">
                 <button id="exitButton" class="exit-button secondary-button">Exit</button>
-                <button id="newEntryButton" class="new-entry-button primary-button">Record Another Exit</button>
+                <button id="newEntryButton" class="new-entry-button primary-button">Submit Another Exit</button>
             </div>
         </div>
 
@@ -1115,9 +1131,16 @@
                 state.platePhotoTime = new Date().toISOString();
                 state.submissionId = state.submissionId || generateUUID();
 
-                // Show thumbnail
-                elements.plateThumbnailImg.src = compressedData;
-                showElement(elements.plateThumbnail);
+                // Animate camera icon out, then show thumbnail
+                const cameraZone = elements.plateCameraIcon.closest('.camera-zone');
+                elements.plateCameraIcon.classList.add('fade-out');
+
+                // Wait for animation to complete before hiding
+                setTimeout(() => {
+                    cameraZone.classList.add('photo-captured');
+                    elements.plateThumbnailImg.src = compressedData;
+                    showElement(elements.plateThumbnail);
+                }, 300);
 
                 // Enable step 2
                 enableStep(elements.step2);
@@ -1157,6 +1180,16 @@
 
                     // Add thumbnail
                     addInvoiceThumbnail(compressedData, state.invoicePhotos.length - 1);
+                }
+
+                // Hide camera icon with animation (only on first photo set)
+                if (state.invoicePhotos.length === files.length) {
+                    const cameraZone = elements.invoiceCameraIcon.closest('.camera-zone');
+                    elements.invoiceCameraIcon.classList.add('fade-out');
+                    
+                    setTimeout(() => {
+                        cameraZone.classList.add('photo-captured');
+                    }, 300);
                 }
 
                 // Show thumbnails grid and add more button
@@ -1630,21 +1663,42 @@
             hideElement(elements.addMoreInvoices);
             hideElement(elements.extractedData);
             hideElement(elements.aiProcessingStatus);
+            hideElement(elements.localOcrStatus);
+            hideElement(elements.ocrInitStatus);
+            hideElement(elements.parseBtn);
+            hideElement(elements.submitBtn);
+            
+            // Hide overlay screens
             hideElement(elements.successMessage);
             hideElement(elements.errorMessage);
 
-            // Reset buttons
-            hideElement(elements.parseBtn);
-            hideElement(elements.submitBtn);
-            elements.parseBtn.disabled = true;
+            // Reset camera icon visibility
+            const cameraZones = document.querySelectorAll('.camera-zone');
+            cameraZones.forEach(zone => {
+                zone.classList.remove('photo-captured');
+                const icon = zone.querySelector('.camera-icon-wrapper');
+                if (icon) icon.classList.remove('fade-out');
+            });
+
+            // CRITICAL: Show step sections (they were hidden by showSuccess)
+            showElement(elements.step1);
+            showElement(elements.step2);
+            showElement(elements.step3);
 
             // Reset steps
             enableStep(elements.step1);
             disableStep(elements.step2);
             disableStep(elements.step3);
 
-            // Reset location
+            // Reset buttons
+            elements.parseBtn.disabled = true;
+
+            // Reset form fields
             elements.extractedLocation.textContent = 'Acquiring...';
+            elements.extractedVehicleNumber.textContent = '--';
+            elements.extractedInvoiceNumbers.textContent = '--';
+            elements.vehicleConfidence.textContent = '--%';
+            elements.invoiceConfidence.textContent = '--%';
         }
 
         // Initialize
