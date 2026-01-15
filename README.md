@@ -59,9 +59,9 @@ A mobile-first single-page web application for tracking factory vehicle exits wi
 
 ### Step 4: Configure Frontend
 
-1. Open [`index.html`](index.html)
-2. Find the CONFIG object in the JavaScript section
-3. Replace `YOUR_WEB_APP_URL_HERE` with your actual Web App URL from Step 3
+1. Open [`script.js`](script.js)
+2. Find the CONFIG object at the top of the file
+3. Replace the `WEB_APP_URL` value with your actual Web App URL from Step 3
 
 ### Step 5: Deploy Frontend
 
@@ -69,19 +69,19 @@ Choose one of the following hosting options:
 
 #### Option A: GitHub Pages (Free)
 1. Create a GitHub repository
-2. Upload `index.html` to the repository
+2. Upload all files (`index.html`, `styles.css`, `script.js`, `manifest.json`, `sw.js`, and the `assets/` folder) to the repository
 3. Go to **Settings** → **Pages**
-4. Select **main** branch as source
+4. Select the **main** branch as the source
 5. Access at `https://yourusername.github.io/repository-name/`
 
 #### Option B: Netlify (Free)
 1. Go to [netlify.com](https://netlify.com)
-2. Drag and drop the folder containing `index.html`
+2. Drag and drop the entire project folder containing all files (`index.html`, `styles.css`, `script.js`, etc.)
 3. Get your URL instantly
 
 #### Option C: Vercel (Free)
 1. Go to [vercel.com](https://vercel.com)
-2. Import your repository or upload files
+2. Import your repository or upload all project files
 3. Deploy with one click
 
 #### Option D: Firebase Hosting
@@ -95,7 +95,7 @@ Choose one of the following hosting options:
 
 1. Open the deployed URL on your mobile device
 2. Tap the camera icon to capture a photo
-3. Fill in vehicle number and invoice numbers
+3. Fill in the vehicle number and invoice numbers
 4. Tap "Submit Entry"
 5. Check your Google Sheet for the new entry
 
@@ -103,16 +103,23 @@ Choose one of the following hosting options:
 
 ```
 vehicle_exit_tracker/
-├── index.html          # Single page application (HTML + CSS + JS)
+├── index.html          # Main HTML structure
+├── styles.css          # All CSS styles and animations
+├── script.js           # JavaScript logic and functionality
 ├── Code.gs             # Google Apps Script backend
-├── plans/
-│   └── plan.md         # Detailed implementation plan
+├── manifest.json        # PWA manifest file
+├── sw.js              # Service Worker for offline support
+├── assets/            # Static assets folder
+│   ├── logo.png        # Application logo
+│   └── images.jpg     # Sample images
+├── plans/             # Planning documents
+│   └── *.md          # Implementation plans
 └── README.md           # This file
 ```
 
 ## Security Considerations
 
-- **Google Apps Script Security**: Deployed as "Me" with "Anyone" access for public web app
+- **Google Apps Script Security**: Deployed as "Me" with "Anyone" access for a public web app
 - **Data Privacy**: Only vehicle numbers, invoice numbers, and photos are collected
 - **Input Validation**: All inputs are sanitized before submission
 - **Location Data**: Only captured with user permission
@@ -125,13 +132,13 @@ vehicle_exit_tracker/
 - Check browser permissions for camera access
 
 ### Photos not uploading to Google Drive
-- Verify FOLDER_ID in Code.gs CONFIG is correct
+- Verify the FOLDER_ID in Code.gs CONFIG is correct
 - Check Google Drive folder permissions
 
 ### Form submission fails
-- Check browser console for errors
-- Verify Web App URL is correct
-- Ensure Google Apps Script is deployed with "Anyone" access
+- Check the browser console for errors
+- Verify the Web App URL is correct
+- Ensure the Google Apps Script is deployed with "Anyone" access
 
 ### Location not captured
 - Ensure location permission is granted
