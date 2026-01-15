@@ -437,6 +437,13 @@
             letter-spacing: 0.05em;
         }
 
+        .data-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
         .data-value {
             font-size: 1rem;
             font-weight: 600;
@@ -500,6 +507,45 @@
         }
 
         .data-value-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .invoice-numbers-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .invoice-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .invoice-number-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .invoice-number-text.editing {
+            display: none;
+        }
+
+        .invoice-number-input {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--surface);
+            border: 1px solid var(--primary);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            width: 100%;
+        }
+
+        .invoice-number-input:focus {
             outline: none;
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
         }
@@ -934,27 +980,31 @@
                 </div>
                 <div class="data-item">
                     <span class="data-label">Vehicle Number:</span>
-                    <span id="extractedVehicleNumber" class="data-value">--</span>
-                    <input type="text" id="vehicleNumberInput" class="data-value-input hidden" aria-label="Edit vehicle number">
-                    <button class="edit-icon-btn" id="editVehicleBtn" aria-label="Edit vehicle number">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <span id="vehicleConfidence" class="confidence-badge">--%</span>
+                    <div class="data-row">
+                        <span id="extractedVehicleNumber" class="data-value">--</span>
+                        <input type="text" id="vehicleNumberInput" class="data-value-input hidden" aria-label="Edit vehicle number">
+                        <button class="edit-icon-btn" id="editVehicleBtn" aria-label="Edit vehicle number">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <span id="vehicleConfidence" class="confidence-badge">--%</span>
+                    </div>
                 </div>
                 <div class="data-item">
                     <span class="data-label">Invoice Numbers:</span>
-                    <span id="extractedInvoiceNumbers" class="data-value">--</span>
-                    <input type="text" id="invoiceNumbersInput" class="data-value-input hidden" aria-label="Edit invoice numbers">
-                    <button class="edit-icon-btn" id="editInvoiceBtn" aria-label="Edit invoice numbers">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <span id="invoiceConfidence" class="confidence-badge">--%</span>
+                    <div id="invoiceNumbersContainer" class="invoice-numbers-container">
+                        <span id="extractedInvoiceNumbers" class="data-value">--</span>
+                        <input type="text" id="invoiceNumbersInput" class="data-value-input hidden" aria-label="Edit invoice numbers">
+                        <button class="edit-icon-btn" id="editInvoiceBtn" aria-label="Edit invoice numbers">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <span id="invoiceConfidence" class="confidence-badge">--%</span>
+                    </div>
                 </div>
                 <div class="data-item">
                     <span class="data-label">Location:</span>
@@ -1602,7 +1652,52 @@
             hideElement(elements.aiProcessingStatus);
 
             elements.extractedVehicleNumber.textContent = result.vehicleNumber || 'Not found';
-            elements.extractedInvoiceNumbers.textContent = (result.invoiceNumbers || []).join(', ') || 'Not found';
+            
+            // Display invoices as separate lines with individual edit icons
+            const invoiceNumbers = result.invoiceNumbers || [];
+            const container = elements.invoiceNumbersContainer;
+            container.innerHTML = '';
+            
+            if (invoiceNumbers.length === 0) {
+                container.innerHTML = '<span class="data-value">Not found</span>';
+            } else {
+                invoiceNumbers.forEach((invoice, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'invoice-item';
+                    
+                    const span = document.createElement('span');
+                    span.className = 'invoice-number-text';
+                    span.textContent = invoice;
+                    span.dataset.index = index;
+                    
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'invoice-number-input hidden';
+                    input.value = invoice;
+                    input.dataset.index = index;
+                    input.setAttribute('aria-label', `Edit invoice ${index + 1}`);
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'edit-icon-btn';
+                    btn.setAttribute('aria-label', `Edit invoice ${index + 1}`);
+                    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>`;
+                    btn.addEventListener('click', () => enterInvoiceEditMode(index));
+                    
+                    input.addEventListener('blur', () => exitInvoiceEditMode(index));
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') exitInvoiceEditMode(index);
+                        if (e.key === 'Escape') cancelInvoiceEditMode(index);
+                    });
+                    
+                    itemDiv.appendChild(span);
+                    itemDiv.appendChild(input);
+                    itemDiv.appendChild(btn);
+                    container.appendChild(itemDiv);
+                });
+            }
 
             const vehicleConf = Math.round((result.vehicleConfidence || 0) * 100);
             const invoiceConf = Math.round((result.invoiceConfidence || 0) * 100);
@@ -1674,6 +1769,63 @@
             const input = field === 'vehicle' ? elements.vehicleNumberInput : elements.invoiceNumbersInput;
             span.classList.remove('editing');
             hideElement(input);
+        }
+
+        // Invoice-specific edit functions
+        function enterInvoiceEditMode(index) {
+            const container = elements.invoiceNumbersContainer;
+            const itemDiv = container.children[index];
+            const span = itemDiv.querySelector('.invoice-number-text');
+            const input = itemDiv.querySelector('.invoice-number-input');
+            
+            span.classList.add('editing');
+            showElement(input);
+            input.focus();
+            input.select();
+        }
+
+        function exitInvoiceEditMode(index) {
+            const container = elements.invoiceNumbersContainer;
+            const itemDiv = container.children[index];
+            const span = itemDiv.querySelector('.invoice-number-text');
+            const input = itemDiv.querySelector('.invoice-number-input');
+            const badge = elements.invoiceConfidence;
+            
+            const newValue = input.value.trim() || 'Not found';
+            span.textContent = newValue;
+            span.classList.remove('editing');
+            hideElement(input);
+            
+            // Update state with all current invoice values
+            updateInvoiceNumbersFromDOM();
+            
+            badge.textContent = 'Edited';
+            badge.className = 'confidence-badge high';
+        }
+
+        function cancelInvoiceEditMode(index) {
+            const container = elements.invoiceNumbersContainer;
+            const itemDiv = container.children[index];
+            const span = itemDiv.querySelector('.invoice-number-text');
+            const input = itemDiv.querySelector('.invoice-number-input');
+            
+            span.classList.remove('editing');
+            hideElement(input);
+        }
+
+        function updateInvoiceNumbersFromDOM() {
+            const container = elements.invoiceNumbersContainer;
+            const spans = container.querySelectorAll('.invoice-number-text');
+            const numbers = Array.from(spans)
+                .map(span => span.textContent)
+                .filter(text => text && text !== 'Not found');
+            
+            if (state.parsedResult) {
+                state.parsedResult.invoiceNumbers = numbers;
+            }
+            if (state.aiResult) {
+                state.aiResult.invoiceNumbers = numbers;
+            }
         }
 
         /**
@@ -1817,7 +1969,7 @@
             // Reset form fields
             elements.extractedLocation.textContent = 'Acquiring...';
             elements.extractedVehicleNumber.textContent = '--';
-            elements.extractedInvoiceNumbers.textContent = '--';
+            elements.invoiceNumbersContainer.innerHTML = '<span class="data-value">--</span>';
             elements.vehicleConfidence.textContent = '--%';
             elements.invoiceConfidence.textContent = '--%';
         }
