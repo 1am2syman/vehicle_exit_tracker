@@ -3,7 +3,7 @@ let CONFIG = {
   FOLDER_ID: '', // Will be loaded from script properties
   SHEET_NAME: 'Sheet1',
   OPENROUTER_API_KEY: '', // Will be loaded from script properties
-  OPENROUTER_MODEL: 'openai/gpt-4o', // Best-in-class OCR & Reasoning
+  OPENROUTER_MODEL: 'google/gemini-3-flash-preview', // Best-in-class OCR & Reasoning
   MAX_PHOTO_SIZE: 1024 * 1024, // 1MB
   MIN_CONFIDENCE_SCORE: 0.7, // Minimum confidence threshold
   API_TIMEOUT: 30000, // 30 seconds
@@ -111,7 +111,7 @@ function handleFastOCR(data) {
         YOUR GOAL: Find the Invoice Number by any means necessary.
         
         The invoice number usually appears near the top right or within header boxes.
-        It is often labeled as: "Invoice No", "INV No", "Ref No", "Bill No", or just "INV".
+        It is often labeled as just "INV".
         
         The value typically starts with "INV" but might be complex (e.g. "INV-DBBA/0325/3219").
         
@@ -121,7 +121,7 @@ function handleFastOCR(data) {
         3. If you find a label "Invoice No" but the value DOES NOT start with INV, return it anyway.
         4. Extract the FULL string (including slashes, dashes, digits).
         
-        Return JSON: {"numbers": ["INV-DBBA/0325/3219", "272025"], "confidence": 0.95}
+        Return JSON: {"numbers": ["INV-DBBA/0325/3219"], "confidence": 0.95}
         If ABSOLUTELY nothing is found: {"numbers": [], "confidence": 0}
     `;
   } else {
